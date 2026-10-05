@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { z } from 'zod';
 import {
   ActionEngine,
   EventBus,
@@ -55,6 +56,9 @@ import {
   type OverlayKind,
   type TemplateContext,
   type WheelSegment,
+  type OverlayStyle,
+  type OverlayThemeDef,
+  OverlayThemeDefSchema,
   parseOverlayOptions,
   renderTemplate,
 } from '@toktok/shared';
@@ -78,6 +82,7 @@ export const SETTINGS = {
   language: 'app.language',
   tiktokUsername: 'tiktok.username',
   kickChannel: 'kick.channel',
+  overlayThemes: 'overlay.themes',
   streakMode: 'gifts.streakMode',
   serverPort: 'server.port',
   engineConcurrency: 'engine.concurrency',
@@ -720,6 +725,31 @@ export class AppCore {
     const saved = this.repos.overlays.save({ ...input, options }, () => generateToken());
     this.feeder.configChanged(saved);
     return this.overlayDto(saved);
+  }
+
+  listThemes(): OverlayThemeDef[] {
+    const raw = this.repos.settings.get<unknown>(SETTINGS.overlayThemes, []);
+    const parsed = z.array(OverlayThemeDefSchema).safeParse(raw);
+    return parsed.success ? parsed.data : [];
+  }
+
+  saveTheme(name: string, style: OverlayStyle): OverlayThemeDef {
+    const list = this.listThemes();
+    if (list.length >= 50) throw new Error('50 thèmes maximum');
+    const theme: OverlayThemeDef = { id: makeId('thm'), name, style };
+    this.repos.settings.set(SETTINGS.overlayThemes, [...list, theme]);
+    return theme;
+  }
+
+  removeTheme(id: string): void {
+    this.repos.settings.set(
+      SETTINGS.overlayThemes,
+      this.listThemes().filter((t) => t.id !== id),
+    );
+  }
+
+  applyStyleToAll(style: OverlayStyle): void {
+    for (const o of this.repos.overlays.list()) this.saveOverlay({ ...o, style });
   }
 
   spinWheel(id: string): void {

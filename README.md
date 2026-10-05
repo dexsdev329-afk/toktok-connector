@@ -232,6 +232,12 @@ interactifs** :
 - « Minuteur (subathon) » : ajouter / régler du temps, démarrer, pause, réinitialiser. Le temps peut être
   multiplié par le nombre de cadeaux ou leur valeur (ex. +10 s par 💎).
 
+**Éditeur de thèmes** (fenêtre « Modifier » d'un overlay) : en plus du thème de base (classique, néon, minimal),
+des couleurs, de la police et de l'animation, la section « Éditeur de thème (avancé) » règle le fond des cartes
+(couleur + opacité), l'arrondi, la bordure, l'ombre (douce / lueur) et un contour de texte pour la lisibilité.
+Cinq préréglages originaux sont fournis (TokTok, Arcade, Verre, Vert néon, Épuré). Un style peut être
+enregistré comme thème réutilisable et appliqué à **tous les overlays** en un clic.
+
 Des boutons manuels (🎡 Tourner, ⏯, ±1 min) sont aussi disponibles sur la page Overlays. Le paramètre
 « Overlay » d'un effet accepte le nom de l'overlay ou `*` pour tous.
 

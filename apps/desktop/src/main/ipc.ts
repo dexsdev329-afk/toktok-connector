@@ -1,6 +1,12 @@
 import { promises as fs } from 'node:fs';
 import { TtsSettingsSchema, exportProfile, importProfile } from '@toktok/core';
-import { ActionSchema, EffectSchema, OverlayConfigSchema, type ActionInput } from '@toktok/shared';
+import {
+  ActionSchema,
+  EffectSchema,
+  OverlayConfigSchema,
+  OverlayStyleSchema,
+  type ActionInput,
+} from '@toktok/shared';
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { z } from 'zod';
 import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
@@ -234,6 +240,7 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
       },
       regenerateToken: (oid: unknown) => core.regenerateOverlayToken(id.parse(oid)),
       spinWheel: (oid: unknown) => core.spinWheel(id.parse(oid)),
+      applyStyleToAll: (style: unknown) => core.applyStyleToAll(OverlayStyleSchema.parse(style)),
       timer: (oid: unknown, op: unknown, seconds: unknown) =>
         core.controlTimer(
           id.parse(oid),
@@ -250,6 +257,12 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
         if (!o || !core.server.port) throw new Error('Overlay indisponible');
         await shell.openExternal(core.server.overlayUrl(o));
       },
+    },
+    themes: {
+      list: () => core.listThemes(),
+      save: (name: unknown, style: unknown) =>
+        core.saveTheme(z.string().trim().min(1).max(60).parse(name), OverlayStyleSchema.parse(style)),
+      remove: (tid: unknown) => core.removeTheme(id.parse(tid)),
     },
     engine: {
       clearQueue: () => core.engine.clearQueue(),

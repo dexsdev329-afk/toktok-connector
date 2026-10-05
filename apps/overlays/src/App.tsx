@@ -1,4 +1,10 @@
-import type { OverlayConfig, OverlayServerMessage, RecentFollower, TopDonor } from '@toktok/shared';
+import {
+  overlayStyleVars,
+  type OverlayConfig,
+  type OverlayServerMessage,
+  type RecentFollower,
+  type TopDonor,
+} from '@toktok/shared';
 import { useCallback, useState, type CSSProperties } from 'react';
 import { Alerts, type AlertItem } from './overlays/Alerts';
 import { Chat, type TimedChatLine } from './overlays/Chat';
@@ -60,16 +66,10 @@ export function App() {
   const onAlertDone = useCallback((id: string) => setAlerts((q) => q.filter((a) => a.id !== id)), []);
 
   if (!config) return null;
-  const s = config.style;
-  const vars = {
-    '--primary': s.primaryColor,
-    '--text': s.textColor,
-    '--font': s.fontFamily,
-    '--size': `${s.fontSizePx}px`,
-  } as CSSProperties;
+  const { vars, classes } = overlayStyleVars(config.style);
 
   return (
-    <div className={`overlay theme-${s.theme} anim-${s.animation}`} style={vars}>
+    <div className={['overlay', ...classes].join(' ')} style={vars as CSSProperties}>
       {config.kind === 'alerts' && <Alerts options={config.options} queue={alerts} onDone={onAlertDone} />}
       {config.kind === 'top-donors' && <TopDonors options={config.options} donors={donors} />}
       {config.kind === 'like-goal' && (

@@ -29,8 +29,132 @@ export const OverlayStyleSchema = z.object({
   fontFamily: z.string().max(80).default('Inter, system-ui, sans-serif'),
   fontSizePx: z.number().int().min(10).max(96).default(28),
   animation: z.enum(['pop', 'slide', 'fade', 'none']).default('pop'),
+  // Advanced settings (theme editor). Undefined = the base theme decides.
+  /** Card background color and its opacity (0-100). */
+  cardColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  cardOpacity: z.number().int().min(0).max(100).optional(),
+  radiusPx: z.number().int().min(0).max(48).optional(),
+  borderWidthPx: z.number().int().min(0).max(8).optional(),
+  shadow: z.enum(['none', 'soft', 'glow']).optional(),
+  /** Dark outline around the text, for readability on busy game backgrounds. */
+  textOutline: z.boolean().optional(),
 });
 export type OverlayStyle = z.infer<typeof OverlayStyleSchema>;
+
+/** A named, reusable style. */
+export const OverlayThemeDefSchema = z.object({
+  id: z.string().min(1).max(100),
+  name: z.string().min(1).max(60),
+  style: OverlayStyleSchema,
+});
+export type OverlayThemeDef = z.infer<typeof OverlayThemeDefSchema>;
+
+/** Built-in starting points (original designs). */
+export const OVERLAY_THEME_PRESETS: OverlayThemeDef[] = [
+  {
+    id: 'preset-toktok',
+    name: 'TokTok',
+    style: {
+      theme: 'default',
+      primaryColor: '#ff2d75',
+      textColor: '#ffffff',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontSizePx: 28,
+      animation: 'pop',
+    },
+  },
+  {
+    id: 'preset-arcade',
+    name: 'Arcade',
+    style: {
+      theme: 'neon',
+      primaryColor: '#22e3ff',
+      textColor: '#f5f7ff',
+      fontFamily: '"Courier New", monospace',
+      fontSizePx: 26,
+      animation: 'slide',
+      cardColor: '#05010f',
+      cardOpacity: 85,
+      radiusPx: 4,
+      borderWidthPx: 3,
+      shadow: 'glow',
+    },
+  },
+  {
+    id: 'preset-glass',
+    name: 'Verre',
+    style: {
+      theme: 'default',
+      primaryColor: '#a78bfa',
+      textColor: '#ffffff',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontSizePx: 28,
+      animation: 'fade',
+      cardColor: '#ffffff',
+      cardOpacity: 14,
+      radiusPx: 24,
+      borderWidthPx: 1,
+      shadow: 'soft',
+      textOutline: true,
+    },
+  },
+  {
+    id: 'preset-green',
+    name: 'Vert néon',
+    style: {
+      theme: 'neon',
+      primaryColor: '#53fc18',
+      textColor: '#ffffff',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      fontSizePx: 28,
+      animation: 'pop',
+    },
+  },
+  {
+    id: 'preset-clean',
+    name: 'Épuré',
+    style: {
+      theme: 'minimal',
+      primaryColor: '#ffd23f',
+      textColor: '#ffffff',
+      fontFamily: 'Georgia, serif',
+      fontSizePx: 30,
+      animation: 'fade',
+      textOutline: true,
+    },
+  },
+];
+
+/** CSS custom properties and modifier classes for a style (shared by the overlays and the app preview). */
+export function overlayStyleVars(s: OverlayStyle): { vars: Record<string, string>; classes: string[] } {
+  const vars: Record<string, string> = {
+    '--primary': s.primaryColor,
+    '--text': s.textColor,
+    '--font': s.fontFamily,
+    '--size': `${s.fontSizePx}px`,
+  };
+  const classes = [`theme-${s.theme}`, `anim-${s.animation}`];
+  if (s.cardColor) {
+    const n = parseInt(s.cardColor.slice(1), 16);
+    const a = (s.cardOpacity ?? 72) / 100;
+    vars['--card-bg'] = `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+    classes.push('has-bg');
+  }
+  if (s.radiusPx !== undefined) {
+    vars['--radius'] = `${s.radiusPx}px`;
+    classes.push('has-radius');
+  }
+  if (s.borderWidthPx !== undefined) {
+    vars['--border-w'] = `${s.borderWidthPx}px`;
+    classes.push('has-border');
+  }
+  if (s.shadow) classes.push(`shadow-${s.shadow}`);
+  if (s.textOutline) classes.push('text-outline');
+  return { vars, classes };
+}
 
 export const AlertsOverlayOptionsSchema = z.object({
   minDiamonds: z.number().int().min(0).default(1),

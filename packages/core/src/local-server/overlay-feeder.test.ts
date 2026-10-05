@@ -162,3 +162,31 @@ describe('wheelSliceColor', () => {
     expect(wheelSliceColor(0, 3)).toBe('#e44444');
   });
 });
+
+describe('overlayStyleVars', () => {
+  it('maps the theme editor fields to CSS variables and classes', async () => {
+    const { overlayStyleVars, OVERLAY_THEME_PRESETS, OverlayStyleSchema } = await import('@toktok/shared');
+    const base = overlayStyleVars(style);
+    expect(base.classes).toEqual(['theme-default', 'anim-pop']);
+    expect(base.vars['--card-bg']).toBeUndefined();
+    const adv = overlayStyleVars({
+      ...style,
+      cardColor: '#102030',
+      cardOpacity: 50,
+      radiusPx: 4,
+      shadow: 'glow',
+      textOutline: true,
+    });
+    expect(adv.vars['--card-bg']).toBe('rgba(16, 32, 48, 0.5)');
+    expect(adv.vars['--radius']).toBe('4px');
+    expect(adv.classes).toEqual([
+      'theme-default',
+      'anim-pop',
+      'has-bg',
+      'has-radius',
+      'shadow-glow',
+      'text-outline',
+    ]);
+    for (const p of OVERLAY_THEME_PRESETS) expect(OverlayStyleSchema.parse(p.style)).toEqual(p.style);
+  });
+});

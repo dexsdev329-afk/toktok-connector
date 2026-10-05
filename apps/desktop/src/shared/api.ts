@@ -3,6 +3,8 @@
  * Every method is validated again in the main process: the renderer is never trusted.
  */
 import type {
+  OverlayStyle,
+  OverlayThemeDef,
   Action,
   ActionInput,
   Effect,
@@ -196,11 +198,19 @@ export interface DesktopApi {
     regenerateToken(id: string): Promise<OverlayDto>;
     open(id: string): Promise<void>;
     spinWheel(id: string): Promise<void>;
+    /** Applies one style to every overlay. */
+    applyStyleToAll(style: OverlayStyle): Promise<void>;
     timer(
       id: string,
       op: 'start' | 'pause' | 'toggle' | 'reset' | 'add' | 'set',
       seconds?: number,
     ): Promise<void>;
+  };
+  themes: {
+    /** User themes (the built-in presets live in @toktok/shared). */
+    list(): Promise<OverlayThemeDef[]>;
+    save(name: string, style: OverlayStyle): Promise<OverlayThemeDef>;
+    remove(id: string): Promise<void>;
   };
   engine: {
     clearQueue(): Promise<void>;

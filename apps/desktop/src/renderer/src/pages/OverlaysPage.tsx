@@ -1,4 +1,11 @@
-import { wheelSliceColor, type Action, type OverlayKind, type WheelSegment } from '@toktok/shared';
+import {
+  OVERLAY_THEME_PRESETS,
+  wheelSliceColor,
+  type Action,
+  type OverlayKind,
+  type OverlayStyle,
+  type WheelSegment,
+} from '@toktok/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { OverlayDto } from '../../../shared/api';
@@ -157,6 +164,7 @@ function OverlayEditor({
           <Field label={t('integrations.name')}>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
+          <ThemePicker style={style} setStyle={setStyle} />
           <h4 className="text-sm font-semibold text-slate-300">{t('overlays.style')}</h4>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('overlays.theme')}>
@@ -215,6 +223,7 @@ function OverlayEditor({
               />
             </Field>
           </div>
+          <AdvancedStyle style={style} setStyle={setStyle} />
           <h4 className="text-sm font-semibold text-slate-300">{t('actions.options')}</h4>
           {overlay.kind === 'alerts' && (
             <div className="grid gap-3">
@@ -579,4 +588,179 @@ function OverlayControls({ overlay }: { overlay: OverlayDto }) {
     );
   }
   return null;
+}
+
+/** Saved themes: presets, user themes, save / apply to all. */
+function ThemePicker({ style, setStyle }: { style: OverlayStyle; setStyle: (s: OverlayStyle) => void }) {
+  const { t } = useTranslation();
+  const [themes, reload] = useLoad(() => api.themes.list());
+  const [name, setName] = useState('');
+  const [selected, setSelected] = useState('');
+  const [save] = useAction(async () => {
+    const theme = await api.themes.save(name.trim(), style);
+    setName('');
+    setSelected(theme.id);
+    reload();
+  }, t('overlays.themeSaved'));
+  const [remove] = useAction(async (id: string) => {
+    await api.themes.remove(id);
+    setSelected('');
+    reload();
+  });
+  const [applyAll] = useAction(async () => {
+    if (!confirm(t('overlays.applyAllConfirm'))) return;
+    await api.overlays.applyStyleToAll(style);
+  }, t('overlays.appliedAll'));
+  const all = [...OVERLAY_THEME_PRESETS, ...(themes ?? [])];
+  const isCustom = themes?.some((th) => th.id === selected);
+  return (
+    <div className="grid gap-2 rounded-lg border border-ink-700 bg-ink-850 p-3">
+      <div className="flex items-end gap-2">
+        <Field label={t('overlays.savedThemes')} className="flex-1">
+          <Select
+            value={selected}
+            onChange={(e) => {
+              setSelected(e.target.value);
+              const theme = all.find((th) => th.id === e.target.value);
+              if (theme) setStyle({ ...theme.style });
+            }}
+          >
+            <option value="">—</option>
+            <optgroup label={t('overlays.presets')}>
+              {OVERLAY_THEME_PRESETS.map((th) => (
+                <option key={th.id} value={th.id}>
+                  {th.name}
+                </option>
+              ))}
+            </optgroup>
+            {!!themes?.length && (
+              <optgroup label={t('overlays.myThemes')}>
+                {themes.map((th) => (
+                  <option key={th.id} value={th.id}>
+                    {th.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </Select>
+        </Field>
+        {isCustom && (
+          <Button size="sm" variant="ghost" onClick={() => void remove(selected)} title={t('common.delete')}>
+            🗑
+          </Button>
+        )}
+      </div>
+      <div className="flex items-end gap-2">
+        <Field label={t('overlays.saveAsTheme')} className="flex-1">
+          <Input
+            value={name}
+            maxLength={60}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('overlays.themeName')}
+          />
+        </Field>
+        <Button size="sm" disabled={!name.trim()} onClick={() => void save()}>
+          💾
+        </Button>
+      </div>
+      <Button size="sm" variant="ghost" onClick={() => void applyAll()}>
+        {t('overlays.applyAll')}
+      </Button>
+    </div>
+  );
+}
+
+/** Theme editor: fine-grained card look on top of the base theme. */
+function AdvancedStyle({ style, setStyle }: { style: OverlayStyle; setStyle: (s: OverlayStyle) => void }) {
+  const { t } = useTranslation();
+  const set = (patch: Partial<OverlayStyle>) => setStyle({ ...style, ...patch });
+  const clear = () => {
+    const next = { ...style };
+    for (const k of [
+      'cardColor',
+      'cardOpacity',
+      'radiusPx',
+      'borderWidthPx',
+      'shadow',
+      'textOutline',
+    ] as const) {
+      delete next[k];
+    }
+    setStyle(next);
+  };
+  return (
+    <details className="rounded-lg border border-ink-700 p-3" open={style.cardColor !== undefined}>
+      <summary className="cursor-pointer text-sm font-semibold text-slate-300">
+        {t('overlays.advanced')}
+      </summary>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Field label={t('overlays.cardColor')}>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={style.cardColor ?? '#0a0a14'}
+              onChange={(e) => set({ cardColor: e.target.value })}
+              className="h-9 w-12 rounded-lg bg-transparent"
+            />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={style.cardOpacity ?? 72}
+              onChange={(e) =>
+                set({ cardColor: style.cardColor ?? '#0a0a14', cardOpacity: Number(e.target.value) })
+              }
+              className="flex-1 accent-brand-500"
+              title={`${style.cardOpacity ?? 72} %`}
+            />
+          </div>
+        </Field>
+        <Field label={t('overlays.shadow')}>
+          <Select
+            value={style.shadow ?? ''}
+            onChange={(e) => {
+              const v = e.target.value as OverlayStyle['shadow'] | '';
+              const next = { ...style };
+              if (v) next.shadow = v;
+              else delete next.shadow;
+              setStyle(next);
+            }}
+          >
+            <option value="">{t('overlays.fromTheme')}</option>
+            <option value="none">{t('overlays.shadows.none')}</option>
+            <option value="soft">{t('overlays.shadows.soft')}</option>
+            <option value="glow">{t('overlays.shadows.glow')}</option>
+          </Select>
+        </Field>
+        <Field label={`${t('overlays.radius')} (${style.radiusPx ?? '—'} px)`}>
+          <input
+            type="range"
+            min={0}
+            max={48}
+            value={style.radiusPx ?? 18}
+            onChange={(e) => set({ radiusPx: Number(e.target.value) })}
+            className="w-full accent-brand-500"
+          />
+        </Field>
+        <Field label={`${t('overlays.borderWidth')} (${style.borderWidthPx ?? '—'} px)`}>
+          <input
+            type="range"
+            min={0}
+            max={8}
+            value={style.borderWidthPx ?? 2}
+            onChange={(e) => set({ borderWidthPx: Number(e.target.value) })}
+            className="w-full accent-brand-500"
+          />
+        </Field>
+        <Toggle
+          checked={Boolean(style.textOutline)}
+          onChange={(v) => set({ textOutline: v })}
+          label={t('overlays.textOutline')}
+        />
+        <Button size="sm" variant="ghost" onClick={clear}>
+          ↺ {t('overlays.fromTheme')}
+        </Button>
+      </div>
+    </details>
+  );
 }

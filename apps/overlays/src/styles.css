@@ -334,6 +334,35 @@ body,
   box-shadow: 0 0 12px var(--primary);
 }
 
+/* ---------- Theme editor overrides (after the base themes on purpose) ---------- */
+.overlay.has-bg .card {
+  background: var(--card-bg);
+}
+.overlay.has-radius .card {
+  border-radius: var(--radius);
+}
+.overlay.has-border .card {
+  border-width: var(--border-w);
+  border-style: solid;
+  border-color: var(--primary);
+}
+.overlay.shadow-none .card {
+  box-shadow: none;
+}
+.overlay.shadow-soft .card {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.overlay.shadow-glow .card {
+  box-shadow:
+    0 0 10px var(--primary),
+    0 0 28px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+.overlay.text-outline {
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
 /* ---------- Animations ---------- */
 .anim-pop .enter {
   animation: pop 450ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
