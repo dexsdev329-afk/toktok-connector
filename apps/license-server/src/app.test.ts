@@ -71,18 +71,28 @@ beforeAll(async () => {
     maxDevices: 2,
     licenseTtlDays: 7,
     authPerMinute: 1000,
-    fetchJson: async () => ({
-      assets: [
-        {
-          name: 'latest.yml',
-          browser_download_url: 'https://github.com/x/y/releases/download/v1/latest.yml',
-        },
-        {
-          name: 'Setup-1.exe',
-          browser_download_url: 'https://github.com/x/y/releases/download/v1/Setup-1.exe',
-        },
-      ],
-    }),
+    // Same shape as the real v0.1.0 incident: a newer duplicate release without the installer.
+    fetchJson: async () => [
+      {
+        draft: true,
+        assets: [{ name: 'Setup-2.exe', browser_download_url: 'https://github.com/x/y/draft.exe' }],
+      },
+      {
+        assets: [{ name: 'Setup-1.exe.blockmap', browser_download_url: 'https://github.com/x/y/b.blockmap' }],
+      },
+      {
+        assets: [
+          {
+            name: 'latest.yml',
+            browser_download_url: 'https://github.com/x/y/releases/download/v1/latest.yml',
+          },
+          {
+            name: 'Setup-1.exe',
+            browser_download_url: 'https://github.com/x/y/releases/download/v1/Setup-1.exe',
+          },
+        ],
+      },
+    ],
   });
   const server = app.listen(0);
   await new Promise((r) => server.once('listening', r));

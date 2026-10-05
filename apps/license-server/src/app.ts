@@ -36,6 +36,12 @@ export interface AppDeps {
   fetchJson?: (url: string) => Promise<unknown>;
 }
 
+interface GithubRelease {
+  draft?: boolean;
+  prerelease?: boolean;
+  assets?: { name?: string; browser_download_url?: string }[];
+}
+
 async function defaultFetchJson(url: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: { accept: 'application/vnd.github+json', 'user-agent': 'toktok-site' },
@@ -585,13 +591,16 @@ export function createApp(deps: AppDeps): express.Express {
     const send = (url: string) => res.redirect(302, url);
     if (latestExe && now().getTime() - latestExe.at < 300_000) return send(latestExe.url);
     (deps.fetchJson ?? defaultFetchJson)(
-      `https://api.github.com/repos/${deps.githubRepo ?? 'dexsdev329-afk/toktok-connector'}/releases/latest`,
+      `https://api.github.com/repos/${deps.githubRepo ?? 'dexsdev329-afk/toktok-connector'}/releases?per_page=10`,
     )
-      .then((rel) => {
-        const assets = (rel as { assets?: { name?: string; browser_download_url?: string }[] }).assets ?? [];
-        const exe = assets.find(
-          (a) => /\.exe$/i.test(a.name ?? '') && a.browser_download_url?.startsWith('https://github.com/'),
-        );
+      .then((list) => {
+        // Newest published release that really contains an installer.
+        const exe = (Array.isArray(list) ? (list as GithubRelease[]) : [])
+          .filter((r) => !r.draft && !r.prerelease)
+          .flatMap((r) => r.assets ?? [])
+          .find(
+            (a) => /\.exe$/i.test(a.name ?? '') && a.browser_download_url?.startsWith('https://github.com/'),
+          );
         if (!exe?.browser_download_url) return send(releasesPage);
         latestExe = { url: exe.browser_download_url, at: now().getTime() };
         send(exe.browser_download_url);

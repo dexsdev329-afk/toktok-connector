@@ -44,7 +44,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm build
-      - name: Build and publish
-        run: pnpm --filter @toktok/desktop exec electron-builder --win --x64 --publish always
+      # electron-builder uploads files in parallel: when no release exists yet, several uploads
+      # can each create one (duplicate releases). Create the draft first, publish it at the end.
+      - name: Create the draft release
+        shell: bash
+        run: |
+          version="v$(node -p "require('./apps/desktop/package.json').version")"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          gh release view "$version" >/dev/null 2>&1 || gh release create "$version" --draft --title "${version#v}" --notes "TokTok Game Connector Live ${version#v}" --verify-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and upload
+        run: pnpm --filter @toktok/desktop exec electron-builder --win --x64 --publish always -c.publish.releaseType=draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the release
+        shell: bash
+        run: gh release edit "$VERSION" --draft=false --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

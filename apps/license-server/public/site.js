@@ -440,12 +440,20 @@ async function loadRelease() {
   // The button always works: the server redirects to the latest installer.
   box.innerHTML = '<a class="btn primary" href="/telecharger/windows">⬇ Télécharger pour Windows (.exe)</a>';
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=10`, {
       headers: { accept: 'application/vnd.github+json' },
     });
     if (!res.ok) return;
-    const rel = await res.json();
-    const exe = (rel.assets || []).find((a) => /\.exe$/i.test(a.name));
+    let rel = null;
+    let exe = null;
+    for (const r of await res.json()) {
+      if (r.draft || r.prerelease) continue;
+      exe = (r.assets || []).find((a) => /\.exe$/i.test(a.name));
+      if (exe) {
+        rel = r;
+        break;
+      }
+    }
     if (!exe) return;
     box.insertAdjacentHTML(
       'beforeend',
