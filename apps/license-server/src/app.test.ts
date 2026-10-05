@@ -353,6 +353,21 @@ describe('license server', () => {
     expect(r.status).toBe(429);
   });
 
+  it('publishes the public key only', async () => {
+    const pem = await (await fetch(`${base}/v1/public-key`)).text();
+    expect(pem).toBe(publicKey.export({ type: 'spki', format: 'pem' }).toString().trim());
+    expect(pem).not.toContain('PRIVATE');
+  });
+
+  it('generates its signing key once and reuses it', async () => {
+    const { resolveSigningKey, publicKeyPem } = await import('./crypto.js');
+    const db = new PGlite();
+    await migrate(db);
+    const a = await resolveSigningKey(db);
+    const b = await resolveSigningKey(db);
+    expect(publicKeyPem(a)).toBe(publicKeyPem(b));
+  });
+
   it('answers health checks and unknown routes', async () => {
     expect((await call('GET', '/health')).body).toEqual({ ok: true, billing: true });
     expect((await call('GET', '/nope')).status).toBe(404);

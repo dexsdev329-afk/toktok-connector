@@ -60,8 +60,9 @@ curl -X POST https://<domaine>/admin/grant -H "Authorization: Bearer $ADMIN_TOKE
 
 `"until":"2026-12-31T23:59:59Z"` pour une durée limitée, `"pro":false` pour retirer.
 
-## Rotation de la clé de licence
+## Clé de licence
 
-La clé publique est intégrée à l'app (`packages/core/src/license/public-key.ts`). Pour changer de clé :
-générer une nouvelle paire, publier une version de l'app avec la nouvelle clé publique, puis remplacer
-`LICENSE_PRIVATE_KEY` (les licences déjà émises restent valides au plus `LICENSE_TTL_DAYS` jours).
+La clé publique est servie sur `GET /v1/public-key` et intégrée à l'app
+(`packages/core/src/license/public-key.ts`). Pour changer de clé : définir une nouvelle `LICENSE_PRIVATE_KEY`
+(ou vider la table `server_keys`), publier une version de l'app avec la nouvelle clé publique ; les licences déjà
+émises restent valides au plus `LICENSE_TTL_DAYS` jours.

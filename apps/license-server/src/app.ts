@@ -9,6 +9,7 @@ import {
   hashPassword,
   hashToken,
   newToken,
+  publicKeyPem,
   signLicense,
   verifyPassword,
   type LicensePayload,
@@ -214,6 +215,12 @@ export function createApp(deps: AppDeps): express.Express {
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, billing: Boolean(billing) });
+  });
+
+  // Public key the app embeds to verify licenses offline (never the private key).
+  const publicKey = publicKeyPem(deps.privateKey);
+  app.get('/v1/public-key', (_req, res) => {
+    res.type('text/plain').send(publicKey);
   });
 
   app.get('/billing/success', (_req, res) => {

@@ -2,7 +2,7 @@ import pg from 'pg';
 import { StripeBilling } from './billing.js';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
-import { loadPrivateKey } from './crypto.js';
+import { publicKeyPem, resolveSigningKey } from './crypto.js';
 import { migrate } from './db.js';
 import { Store } from './store.js';
 
@@ -19,6 +19,8 @@ const pool = new pg.Pool({
   // Railway's private network needs no TLS; public URLs (sslmode=require) are honored by pg.
 });
 await migrate(pool);
+const privateKey = await resolveSigningKey(pool, config.LICENSE_PRIVATE_KEY);
+log('info', `Clé publique des licences :\n${publicKeyPem(privateKey)}`);
 
 const billing =
   config.STRIPE_SECRET_KEY && config.STRIPE_WEBHOOK_SECRET
@@ -32,7 +34,7 @@ if (!billing)
 
 const app = createApp({
   store: new Store(pool),
-  privateKey: loadPrivateKey(config.LICENSE_PRIVATE_KEY),
+  privateKey,
   billing,
   publicUrl: config.PUBLIC_URL.replace(/\/$/, ''),
   ...(config.ADMIN_TOKEN ? { adminToken: config.ADMIN_TOKEN } : {}),

@@ -1,6 +1,8 @@
 import {
   createHash,
   createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
   randomBytes,
   scrypt,
   sign,
@@ -94,4 +96,30 @@ export function signLicense(payload: LicensePayload, key: KeyObject): string {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = sign(null, Buffer.from(body), key).toString('base64url');
   return `${body}.${signature}`;
+}
+
+export function publicKeyPem(privateKey: KeyObject): string {
+  return createPublicKey(privateKey).export({ type: 'spki', format: 'pem' }).toString().trim();
+}
+
+/**
+ * Signing key: LICENSE_PRIVATE_KEY when set, otherwise a key generated once and kept in the
+ * database (so nobody ever has to handle the private key). The app embeds the public key,
+ * published at GET /v1/public-key.
+ */
+export async function resolveSigningKey(
+  db: { query<R>(sql: string, params?: unknown[]): Promise<{ rows: R[] }> },
+  fromEnv?: string,
+): Promise<KeyObject> {
+  if (fromEnv) return loadPrivateKey(fromEnv);
+  const pem = generateKeyPairSync('ed25519').privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+  // Concurrent first starts: the first insert wins, everyone reads it back.
+  await db.query(
+    `INSERT INTO server_keys (name, private_pem) VALUES ('license', $1) ON CONFLICT DO NOTHING`,
+    [pem],
+  );
+  const { rows } = await db.query<{ private_pem: string }>(
+    `SELECT private_pem FROM server_keys WHERE name = 'license'`,
+  );
+  return loadPrivateKey(rows[0]!.private_pem);
 }

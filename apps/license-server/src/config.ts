@@ -11,8 +11,8 @@ const pem = z
 const ConfigSchema = z.object({
   PORT: z.coerce.number().int().default(8080),
   DATABASE_URL: z.string().min(1),
-  /** Ed25519 private key (PKCS#8 PEM) signing the licenses. The app embeds the public key. */
-  LICENSE_PRIVATE_KEY: pem,
+  /** Ed25519 private key (PKCS#8 PEM). Optional: generated and stored in the database when absent. */
+  LICENSE_PRIVATE_KEY: pem.optional(),
   /** Public URL of this server (Stripe redirects, pages). */
   PUBLIC_URL: z.string().url().default('http://localhost:8080'),
   ADMIN_TOKEN: z.string().min(24).optional(),
