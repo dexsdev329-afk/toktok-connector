@@ -1,0 +1,25 @@
+{
+  "name": "@toktok/rooms-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-room relay between TokTok Game Connector Live and browser games (Railway).",
+  "type": "module",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "dev": "tsc -p tsconfig.build.json && node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/ws": "^8.18.2",
+    "typescript": "~5.9.3"
+  }
+}

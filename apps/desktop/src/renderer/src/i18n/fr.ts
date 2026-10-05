@@ -188,6 +188,12 @@ const fr = {
       token: 'Jeton du mod',
       tokenHelp: 'Laisse vide pour en générer un. À copier dans la config de ton mod.',
     },
+    rooms: {
+      url: 'Adresse du serveur (wss://…)',
+      room: 'Numéro de salle',
+      pin: 'PIN de la salle',
+      forwardEvents: 'Envoyer tous les événements du live aux jeux',
+    },
     input: {
       stepDelay: 'Pause entre deux étapes (ms)',
     },
@@ -356,6 +362,7 @@ const fr = {
     masterVolume: 'Volume général',
     noSounds: 'Aucun son. Importe des fichiers mp3, wav ou ogg.',
   },
+  rooms: { effect: 'Nom de l’effet', params: 'Paramètres (JSON)' },
   effects: {
     command: 'Commande(s)',
     script: 'Script',

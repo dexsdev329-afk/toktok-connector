@@ -153,6 +153,12 @@ dans l'URL sont encodées, celles du corps JSON sont échappées. Si le corps es
 contexte (`username`, `giftName`, `count`, `diamonds`…). C'est la façon la plus simple de brancher tes jeux
 web hébergés sur Railway.
 
+### Jeux navigateur : serveur de salles
+
+`apps/rooms-server` est un serveur de salles (20 salles avec PIN), prêt à être déployé sur Railway. L'app s'y
+connecte via l'intégration **Serveur de salles** ; tes jeux web (Three.js…) le rejoignent avec un petit
+script, `toktok-room-client.js`. Le déploiement est décrit dans [apps/rooms-server](apps/rooms-server).
+
 ### Sons & synthèse vocale
 
 Onglet **Sons & voix** :

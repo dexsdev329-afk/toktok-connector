@@ -190,6 +190,12 @@ const en: Dict = {
       token: 'Mod token',
       tokenHelp: 'Leave empty to generate one. Copy it into your mod config.',
     },
+    rooms: {
+      url: 'Server address (wss://…)',
+      room: 'Room number',
+      pin: 'Room PIN',
+      forwardEvents: 'Send every live event to the games',
+    },
     input: {
       stepDelay: 'Pause between steps (ms)',
     },
@@ -248,6 +254,7 @@ const en: Dict = {
     masterVolume: 'Master volume',
     noSounds: 'No sound yet. Import mp3, wav or ogg files.',
   },
+  rooms: { effect: 'Effect name', params: 'Parameters (JSON)' },
   effects: {
     command: 'Command(s)',
     script: 'Script',

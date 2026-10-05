@@ -3,6 +3,7 @@ import { inputDefinition } from './input/input-integration';
 import { minecraftBedrockDefinition } from './minecraft-bedrock/minecraft-bedrock';
 import { minecraftRconDefinition } from './minecraft-rcon/minecraft-rcon';
 import { modBridgeDefinition } from './mod-bridge/mod-bridge';
+import { roomsDefinition } from './rooms/rooms';
 import { webhookDefinition } from './webhook/webhook';
 import {
   IntegrationError,
@@ -20,6 +21,7 @@ export const BUILTIN_DEFINITIONS: IntegrationDefinition<any>[] = [
   inputDefinition,
   modBridgeDefinition,
   webhookDefinition,
+  roomsDefinition,
 ];
 
 export interface IntegrationInstanceConfig {
