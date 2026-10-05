@@ -1,6 +1,5 @@
 import {
   OVERLAY_THEME_PRESETS,
-  overlayAllowed,
   wheelSliceColor,
   type Action,
   type OverlayKind,
@@ -14,8 +13,6 @@ import { Button, Card, Field, Input, Modal, Select, Toggle } from '../components
 import { api } from '../lib/api';
 import { useAction, useLoad } from '../lib/hooks';
 import { toast } from '../lib/toast';
-import { ProBadge } from '../components/ProBadge';
-import { useEntitlements } from '../lib/store';
 
 const KINDS: OverlayKind[] = [
   'alerts',
@@ -38,7 +35,6 @@ const DEFAULT_STYLE: OverlayDto['style'] = {
 
 export function OverlaysPage() {
   const { t } = useTranslation();
-  const ent = useEntitlements();
   const [list, reload] = useLoad(() => api.overlays.list());
   const [editing, setEditing] = useState<OverlayDto | null>(null);
   const [add] = useAction(async (kind: OverlayKind) => {
@@ -60,20 +56,11 @@ export function OverlaysPage() {
     <div className="flex flex-col gap-4">
       <p className="text-sm text-slate-400">{t('overlays.intro')}</p>
       <div className="flex flex-wrap gap-2">
-        {KINDS.map((k) =>
-          overlayAllowed(ent, k) ? (
-            <Button key={k} onClick={() => void add(k)}>
-              ＋ {t(`overlays.kinds.${k}`)}
-            </Button>
-          ) : (
-            <span
-              key={k}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-ink-850 px-3 py-1.5 text-sm text-slate-500"
-            >
-              ＋ {t(`overlays.kinds.${k}`)} <ProBadge />
-            </span>
-          ),
-        )}
+        {KINDS.map((k) => (
+          <Button key={k} onClick={() => void add(k)}>
+            ＋ {t(`overlays.kinds.${k}`)}
+          </Button>
+        ))}
       </div>
       {list?.map((o) => (
         <Card
@@ -85,15 +72,7 @@ export function OverlaysPage() {
             </>
           }
           actions={
-            o.locked ? (
-              <span className="flex items-center gap-2 text-xs text-slate-400">
-                {t('account.overlayLocked')} <ProBadge />
-              </span>
-            ) : (
-              <span className="text-xs text-slate-500">
-                {t('overlays.connected', { count: o.connected })}
-              </span>
-            )
+            <span className="text-xs text-slate-500">{t('overlays.connected', { count: o.connected })}</span>
           }
         >
           <div className="flex flex-wrap items-center gap-2">
@@ -619,7 +598,6 @@ function OverlayControls({ overlay }: { overlay: OverlayDto }) {
 /** Saved themes: presets, user themes, save / apply to all. */
 function ThemePicker({ style, setStyle }: { style: OverlayStyle; setStyle: (s: OverlayStyle) => void }) {
   const { t } = useTranslation();
-  const { themeEditor } = useEntitlements();
   const [themes, reload] = useLoad(() => api.themes.list());
   const [name, setName] = useState('');
   const [selected, setSelected] = useState('');
@@ -641,15 +619,7 @@ function ThemePicker({ style, setStyle }: { style: OverlayStyle; setStyle: (s: O
   const all = [...OVERLAY_THEME_PRESETS, ...(themes ?? [])];
   const isCustom = themes?.some((th) => th.id === selected);
   return (
-    <fieldset
-      disabled={!themeEditor}
-      className="grid gap-2 rounded-lg border border-ink-700 bg-ink-850 p-3 disabled:opacity-60"
-    >
-      {!themeEditor && (
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <ProBadge /> {t('account.features.themes.label')}
-        </div>
-      )}
+    <div className="grid gap-2 rounded-lg border border-ink-700 bg-ink-850 p-3">
       <div className="flex items-end gap-2">
         <Field label={t('overlays.savedThemes')} className="flex-1">
           <Select
@@ -701,14 +671,13 @@ function ThemePicker({ style, setStyle }: { style: OverlayStyle; setStyle: (s: O
       <Button size="sm" variant="ghost" onClick={() => void applyAll()}>
         {t('overlays.applyAll')}
       </Button>
-    </fieldset>
+    </div>
   );
 }
 
 /** Theme editor: fine-grained card look on top of the base theme. */
 function AdvancedStyle({ style, setStyle }: { style: OverlayStyle; setStyle: (s: OverlayStyle) => void }) {
   const { t } = useTranslation();
-  const { themeEditor } = useEntitlements();
   const set = (patch: Partial<OverlayStyle>) => setStyle({ ...style, ...patch });
   const clear = () => {
     const next = { ...style };
@@ -727,78 +696,76 @@ function AdvancedStyle({ style, setStyle }: { style: OverlayStyle; setStyle: (s:
   return (
     <details className="rounded-lg border border-ink-700 p-3" open={style.cardColor !== undefined}>
       <summary className="cursor-pointer text-sm font-semibold text-slate-300">
-        {t('overlays.advanced')} {!themeEditor && <ProBadge className="ml-2" />}
+        {t('overlays.advanced')}
       </summary>
-      <fieldset disabled={!themeEditor} className="disabled:opacity-60">
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Field label={t('overlays.cardColor')}>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={style.cardColor ?? '#0a0a14'}
-                onChange={(e) => set({ cardColor: e.target.value })}
-                className="h-9 w-12 rounded-lg bg-transparent"
-              />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={style.cardOpacity ?? 72}
-                onChange={(e) =>
-                  set({ cardColor: style.cardColor ?? '#0a0a14', cardOpacity: Number(e.target.value) })
-                }
-                className="flex-1 accent-brand-500"
-                title={`${style.cardOpacity ?? 72} %`}
-              />
-            </div>
-          </Field>
-          <Field label={t('overlays.shadow')}>
-            <Select
-              value={style.shadow ?? ''}
-              onChange={(e) => {
-                const v = e.target.value as OverlayStyle['shadow'] | '';
-                const next = { ...style };
-                if (v) next.shadow = v;
-                else delete next.shadow;
-                setStyle(next);
-              }}
-            >
-              <option value="">{t('overlays.fromTheme')}</option>
-              <option value="none">{t('overlays.shadows.none')}</option>
-              <option value="soft">{t('overlays.shadows.soft')}</option>
-              <option value="glow">{t('overlays.shadows.glow')}</option>
-            </Select>
-          </Field>
-          <Field label={`${t('overlays.radius')} (${style.radiusPx ?? '—'} px)`}>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Field label={t('overlays.cardColor')}>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={style.cardColor ?? '#0a0a14'}
+              onChange={(e) => set({ cardColor: e.target.value })}
+              className="h-9 w-12 rounded-lg bg-transparent"
+            />
             <input
               type="range"
               min={0}
-              max={48}
-              value={style.radiusPx ?? 18}
-              onChange={(e) => set({ radiusPx: Number(e.target.value) })}
-              className="w-full accent-brand-500"
+              max={100}
+              value={style.cardOpacity ?? 72}
+              onChange={(e) =>
+                set({ cardColor: style.cardColor ?? '#0a0a14', cardOpacity: Number(e.target.value) })
+              }
+              className="flex-1 accent-brand-500"
+              title={`${style.cardOpacity ?? 72} %`}
             />
-          </Field>
-          <Field label={`${t('overlays.borderWidth')} (${style.borderWidthPx ?? '—'} px)`}>
-            <input
-              type="range"
-              min={0}
-              max={8}
-              value={style.borderWidthPx ?? 2}
-              onChange={(e) => set({ borderWidthPx: Number(e.target.value) })}
-              className="w-full accent-brand-500"
-            />
-          </Field>
-          <Toggle
-            checked={Boolean(style.textOutline)}
-            onChange={(v) => set({ textOutline: v })}
-            label={t('overlays.textOutline')}
+          </div>
+        </Field>
+        <Field label={t('overlays.shadow')}>
+          <Select
+            value={style.shadow ?? ''}
+            onChange={(e) => {
+              const v = e.target.value as OverlayStyle['shadow'] | '';
+              const next = { ...style };
+              if (v) next.shadow = v;
+              else delete next.shadow;
+              setStyle(next);
+            }}
+          >
+            <option value="">{t('overlays.fromTheme')}</option>
+            <option value="none">{t('overlays.shadows.none')}</option>
+            <option value="soft">{t('overlays.shadows.soft')}</option>
+            <option value="glow">{t('overlays.shadows.glow')}</option>
+          </Select>
+        </Field>
+        <Field label={`${t('overlays.radius')} (${style.radiusPx ?? '—'} px)`}>
+          <input
+            type="range"
+            min={0}
+            max={48}
+            value={style.radiusPx ?? 18}
+            onChange={(e) => set({ radiusPx: Number(e.target.value) })}
+            className="w-full accent-brand-500"
           />
-          <Button size="sm" variant="ghost" onClick={clear}>
-            ↺ {t('overlays.fromTheme')}
-          </Button>
-        </div>
-      </fieldset>
+        </Field>
+        <Field label={`${t('overlays.borderWidth')} (${style.borderWidthPx ?? '—'} px)`}>
+          <input
+            type="range"
+            min={0}
+            max={8}
+            value={style.borderWidthPx ?? 2}
+            onChange={(e) => set({ borderWidthPx: Number(e.target.value) })}
+            className="w-full accent-brand-500"
+          />
+        </Field>
+        <Toggle
+          checked={Boolean(style.textOutline)}
+          onChange={(v) => set({ textOutline: v })}
+          label={t('overlays.textOutline')}
+        />
+        <Button size="sm" variant="ghost" onClick={clear}>
+          ↺ {t('overlays.fromTheme')}
+        </Button>
+      </div>
     </details>
   );
 }

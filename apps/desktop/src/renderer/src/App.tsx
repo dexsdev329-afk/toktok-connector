@@ -1,8 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from './components/StatusBadge';
 import { Toasts, cx } from './components/ui';
-import { useStore, type PageKey } from './lib/store';
-import { AccountPage } from './pages/AccountPage';
+import { useStore } from './lib/store';
 import { LIVE_PLATFORMS } from '../../shared/api';
 import { MediaPlayer } from './components/MediaPlayer';
 import { ActionsPage } from './pages/ActionsPage';
@@ -22,15 +22,13 @@ const PAGES = {
   audio: { icon: '🔊', component: AudioPage },
   games: { icon: '🕹', component: HomeGamesPage },
   journal: { icon: '☰', component: JournalPage },
-  account: { icon: '👤', component: AccountPage },
   settings: { icon: '⚙', component: SettingsPage },
-} as const satisfies Record<PageKey, unknown>;
+} as const;
+type PageKey = keyof typeof PAGES;
 
 export function App() {
   const { t } = useTranslation();
-  const page = useStore((s) => s.page);
-  const setPage = useStore((s) => s.setPage);
-  const plan = useStore((s) => s.account?.plan);
+  const [page, setPage] = useState<PageKey>('dashboard');
   const connection = useStore((s) => s.connection);
   const Page = PAGES[page].component;
 
@@ -58,11 +56,6 @@ export function App() {
             >
               <span className="w-5 text-center">{PAGES[key].icon}</span>
               {t(`nav.${key}`)}
-              {key === 'account' && plan === 'pro' && (
-                <span className="ml-auto rounded bg-brand-500/25 px-1.5 text-[10px] font-bold text-brand-300">
-                  PRO
-                </span>
-              )}
             </button>
           ))}
         </nav>

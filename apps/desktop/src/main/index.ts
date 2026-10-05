@@ -1,4 +1,3 @@
-import { FREE_ENTITLEMENTS } from '@toktok/shared';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, session, shell } from 'electron';
@@ -6,15 +5,12 @@ import type { PushEvents } from '../shared/api';
 import { AppCore } from './app-core';
 import { registerIpc } from './ipc';
 import { Updater } from './updater';
-import { AccountService } from './account';
-
 import { configureSafeStorageForDev, loadGamepadDriver, loadInputDriver, safeStorageCipher } from './native';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | null = null;
 let core: AppCore | null = null;
 let updater: Updater | null = null;
-let account: AccountService | null = null;
 
 function log(level: 'info' | 'warn' | 'error', message: string): void {
   const line = `[${new Date().toISOString()}] ${level.toUpperCase()} ${message}`;
@@ -94,8 +90,6 @@ if (!app.requestSingleInstanceLock()) {
       cipher: safeStorageCipher,
       input: loadInputDriver((m) => log('warn', m)),
       gamepad: loadGamepadDriver((m) => log('warn', m)),
-      // The account is created right after the core (it needs its database).
-      entitlements: { current: () => account?.current() ?? FREE_ENTITLEMENTS },
       log,
       push: {
         connection: (platform, info) => push('connection', { platform, info }),
@@ -105,24 +99,9 @@ if (!app.requestSingleInstanceLock()) {
         media: (req) => push('media', req),
       },
     });
-    const dev = !app.isPackaged;
-    const appCore = core;
-    account = new AccountService({
-      settings: core.repos.settings,
-      secrets: core.repos.secrets,
-      log,
-      // Development only: TOKTOK_DEV_PRO=1 unlocks everything, TOKTOK_ACCOUNT_SERVER points to a local server.
-      devPro: dev && process.env.TOKTOK_DEV_PRO === '1',
-      ...(dev && process.env.TOKTOK_ACCOUNT_SERVER ? { serverUrl: process.env.TOKTOK_ACCOUNT_SERVER } : {}),
-      onChange: (state) => {
-        push('account', state);
-        void appCore.applyEntitlements().catch((err: unknown) => log('error', String(err)));
-      },
-    });
     updater = new Updater(core.repos.settings, (s) => push('updates', s), log);
-    registerIpc(core, updater, account, () => mainWindow);
+    registerIpc(core, updater, () => mainWindow);
     await core.start();
-    account.start();
     updater.start();
     log('info', `Serveur local : ${core.server.port ? core.server.origin : 'indisponible'}`);
     createWindow();
@@ -142,7 +121,6 @@ if (!app.requestSingleInstanceLock()) {
     e.preventDefault();
     quitting = true;
     updater?.stop();
-    account?.stop();
     core
       .stop()
       .catch((err: unknown) => log('error', String(err)))

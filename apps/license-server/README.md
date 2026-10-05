@@ -1,4 +1,7 @@
-# Serveur de comptes et licences
+# Espace web (et API de comptes, inutilisée)
+
+> L'app est désormais **100 % gratuite** : ce service sert surtout l'espace web public. L'API de comptes,
+> licences et Stripe ci-dessous n'est plus utilisée ni par l'app ni par le site.
 
 Comptes, appareils, licences signées et abonnement Pro (Stripe) pour TokTok Game Connector Live.
 Express 5 + PostgreSQL, déployé sur Railway.
@@ -7,9 +10,11 @@ Express 5 + PostgreSQL, déployé sur Railway.
 
 Le serveur sert aussi l'**espace web** public (`public/`, HTML/CSS/JS sans dépendance) :
 accueil, catalogue des jeux compatibles avec guide d'installation, téléchargement de l'app (dernière version
-lue sur GitHub Releases), Gratuit / Pro, compte (connexion web par cookie de session `HttpOnly`,
-`SameSite=Strict` + contrôle d'origine, sans occuper de place d'appareil) et confidentialité. CSP stricte :
-aucun script ni style en ligne, aucune ressource externe sauf l'API GitHub.
+lue sur GitHub Releases) et confidentialité. CSP stricte : aucun script ni style en ligne, aucune ressource
+externe sauf l'API GitHub.
+
+Illustrations des jeux : `public/img/jeux/<id>.webp` (960×640). Sans image, la carte garde son dégradé.
+`OPENAI_API_KEY=… node scripts/generate-game-images.mjs` les génère (ImageMagick requis pour la conversion).
 
 Routes web : `POST /v1/web/register|login|logout|checkout|portal`, `GET /v1/web/me`, `DELETE /v1/web/devices/:id`.
 

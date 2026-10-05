@@ -3,4 +3,3 @@ export * from './actions';
 export * from './template';
 export * from './overlays';
 export * from './log';
-export * from './entitlements';

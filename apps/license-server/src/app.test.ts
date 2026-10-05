@@ -414,7 +414,7 @@ describe('license server', () => {
     ).json()) as Json;
     expect(removed.devices).toHaveLength(0);
     expect(
-      (await (await web('POST', '/v1/web/checkout', { interval: 'monthly' }, cookie)).json()).url,
+      ((await (await web('POST', '/v1/web/checkout', { interval: 'monthly' }, cookie)).json()) as Json).url,
     ).toContain('checkout.stripe.com');
     expect((await web('POST', '/v1/web/login', { email: 'web@example.com', password: 'faux' })).status).toBe(
       401,

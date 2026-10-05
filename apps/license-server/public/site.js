@@ -1,4 +1,4 @@
-// Espace web TokTok Game Connector Live : accueil, catalogue des jeux, téléchargements, Gratuit/Pro, compte.
+// Espace web TokTok Game Connector Live (100 % gratuit) : accueil, catalogue des jeux, téléchargements.
 // Aucun framework : rendu par chaînes de caractères (toujours via esc() pour les données) et routes en #/…
 'use strict';
 
@@ -18,7 +18,6 @@ const GAMES = [
     emoji: '⛏️',
     colors: ['#3f8f3a', '#1f4d1d'],
     genre: 'Sandbox',
-    plan: 'free',
     how: 'RCON (serveur local ou hébergé)',
     level: 'Facile',
     short:
@@ -44,7 +43,6 @@ const GAMES = [
     emoji: '🧱',
     colors: ['#5b8c32', '#2c4a17'],
     genre: 'Sandbox',
-    plan: 'free',
     how: 'Commande /connect (Windows 10/11)',
     level: 'Facile',
     short: 'Le jeu se connecte directement à l’app, sans serveur : idéal en solo sur PC.',
@@ -66,7 +64,6 @@ const GAMES = [
     emoji: '🌀',
     colors: ['#7c3aed', '#1e1b4b'],
     genre: 'Action',
-    plan: 'pro',
     experimental: true,
     how: 'WebSocket de debug du Chaos Mod (solo)',
     level: 'Moyen',
@@ -97,7 +94,6 @@ const GAMES = [
     emoji: '🧩',
     colors: ['#0ea5e9', '#0c2a4a'],
     genre: 'Mods',
-    plan: 'pro',
     how: 'Bridge WebSocket + plugin BepInEx',
     level: 'Avancé',
     short: 'Pour les jeux Unity : un plugin BepInEx reçoit les effets et déclare ses propres effets à l’app.',
@@ -123,7 +119,6 @@ const GAMES = [
     emoji: '⌨️',
     colors: ['#f43f5e', '#4c0519'],
     genre: 'Tous les jeux',
-    plan: 'free',
     how: 'Simulation clavier & souris',
     level: 'Facile',
     short: 'Sauter, avancer, ouvrir l’inventaire, tourner la caméra… dans le jeu au premier plan.',
@@ -145,7 +140,6 @@ const GAMES = [
     emoji: '🎮',
     colors: ['#22c55e', '#052e16'],
     genre: 'Tous les jeux',
-    plan: 'pro',
     how: 'Manette virtuelle Xbox 360 / DualShock 4 (ViGEmBus)',
     level: 'Moyen',
     short:
@@ -170,7 +164,6 @@ const GAMES = [
     emoji: '🌐',
     colors: ['#06b6d4', '#083344'],
     genre: 'Communauté',
-    plan: 'pro',
     how: 'Serveur de salles (Railway) + script client',
     level: 'Moyen',
     short:
@@ -199,7 +192,6 @@ const GAMES = [
     emoji: '🏠',
     colors: ['#f59e0b', '#451a03'],
     genre: 'Communauté',
-    plan: 'free',
     how: 'Dossier local ou URL, ouvert par l’app',
     level: 'Facile',
     short:
@@ -218,7 +210,6 @@ const GAMES = [
     emoji: '🔗',
     colors: ['#64748b', '#0f172a'],
     genre: 'Mods',
-    plan: 'pro',
     how: 'Requêtes HTTP (webhook)',
     level: 'Avancé',
     short: 'Chaque action peut appeler une URL : ton bot Discord, ton serveur de jeu, n’importe quelle API.',
@@ -245,34 +236,26 @@ const esc = (v) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 const $view = () => document.getElementById('view');
-const planBadge = (p) =>
-  p === 'pro' ? '<span class="badge pro">PRO</span>' : '<span class="badge free">GRATUIT</span>';
-/** Gradients are applied after rendering (the CSP forbids inline style attributes). */
+/**
+ * Card backgrounds, applied after rendering (the CSP forbids inline style attributes):
+ * the game's illustration `/img/jeux/<id>.webp` over its colour gradient (if the image
+ * is missing, the gradient simply stays visible).
+ */
 const art = (g) => `data-art="${esc(g.id)}"`;
 function paintArt(root) {
   root.querySelectorAll('[data-art]').forEach((el) => {
     const g = GAMES.find((x) => x.id === el.dataset.art);
-    if (g) el.style.background = `linear-gradient(135deg, ${g.colors[0]}, ${g.colors[1]})`;
+    if (!g) return;
+    el.style.backgroundImage = [
+      'linear-gradient(rgba(11, 11, 20, 0.1), rgba(11, 11, 20, 0.3))',
+      `url('/img/jeux/${g.id}.webp')`,
+      `linear-gradient(135deg, ${g.colors[0]}, ${g.colors[1]})`,
+    ].join(', ');
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
   });
 }
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
-
-async function api(method, path, body) {
-  const res = await fetch(path, {
-    method,
-    headers: body === undefined ? {} : { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    credentials: 'same-origin',
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error(data.message || `Erreur ${res.status}`);
-    err.status = res.status;
-    err.code = data.error;
-    throw err;
-  }
-  return data;
-}
 
 // ---------------------------------------------------------------- views
 
@@ -281,8 +264,6 @@ const views = {
   jeux: games,
   jeu: game,
   telecharger: download,
-  tarifs: pricing,
-  compte: account,
   confidentialite: privacy,
 };
 
@@ -290,7 +271,7 @@ function home() {
   return `
   <section class="hero">
     <div>
-      <span class="badge free">GRATUIT · Windows</span>
+      <span class="badge free">100 % GRATUIT · Windows</span>
       <h1>Ton live <span class="pink">TikTok</span> ou <span class="cyan">Kick</span> pilote tes jeux.</h1>
       <p class="lead">Un cadeau fait apparaître un zombie, un follow lance une roue, un « !tnt » dans le chat fait tout
         exploser. Choisis ton jeu, installe l’app et laisse ta communauté jouer avec toi.</p>
@@ -312,7 +293,7 @@ function home() {
 
   <div class="section-title"><h2>Comment ça marche</h2></div>
   <div class="grid cols-3 steps">
-    <div class="card step"><h3>Télécharge l’app</h3><p class="muted">Installe TokTok Game Connector Live sur ton PC Windows. Gratuit, sans compte obligatoire.</p></div>
+    <div class="card step"><h3>Télécharge l’app</h3><p class="muted">Installe TokTok Game Connector Live sur ton PC Windows. Entièrement gratuit, sans compte ni abonnement.</p></div>
     <div class="card step"><h3>Choisis ton jeu</h3><p class="muted">Minecraft, GTA V, jeux Unity, jeux navigateur… Chaque jeu a son guide pas à pas.</p></div>
     <div class="card step"><h3>Connecte ton live</h3><p class="muted">Entre ton pseudo TikTok (et/ou Kick) : les cadeaux, likes et messages déclenchent tes actions.</p></div>
   </div>
@@ -332,6 +313,11 @@ function home() {
       ['🔊', 'Sons & voix', 'Sons par action, lecture du chat avec filtre anti-insultes.'],
       ['⚡', 'Moteur d’actions', 'Cooldowns, priorités, file d’attente, multiplicateur par quantité.'],
       ['🟩', 'Multistream', 'TikTok et Kick en même temps, les mêmes actions pour les deux.'],
+      [
+        '🎁',
+        '100 % gratuit',
+        'Toutes les fonctions, tous les jeux, tous les overlays. Pas d’abonnement, pas de compte.',
+      ],
       ['🔒', 'Sécurisé', 'Tout tourne sur ton PC, secrets chiffrés, serveurs locaux fermés à l’extérieur.'],
     ]
       .map(
@@ -348,14 +334,14 @@ function gameCard(g) {
     <div class="body">
       <h3>${esc(g.name)}</h3>
       <div class="muted small">${g.short}</div>
-      <div class="meta">${planBadge(g.plan)}<span class="badge">${esc(g.genre)}</span><span class="badge">${esc(g.level)}</span>${
+      <div class="meta"><span class="badge">${esc(g.genre)}</span><span class="badge">${esc(g.level)}</span>${
         g.experimental ? '<span class="badge exp">EXPÉRIMENTAL</span>' : ''
       }</div>
     </div>
   </a>`;
 }
 
-const gameFilter = { genre: 'Tous', plan: 'all', q: '' };
+const gameFilter = { genre: 'Tous', q: '' };
 
 function games() {
   return `
@@ -363,7 +349,6 @@ function games() {
   <div class="filters">
     <input id="game-search" type="search" placeholder="Rechercher un jeu…" value="${esc(gameFilter.q)}" aria-label="Rechercher" />
     ${GENRES.map((g) => `<button class="chip ${gameFilter.genre === g ? 'on' : ''}" data-genre="${esc(g)}">${esc(g)}</button>`).join('')}
-    <button class="chip ${gameFilter.plan === 'free' ? 'on' : ''}" data-plan="free">Gratuits uniquement</button>
   </div>
   <div id="game-grid" class="grid cols-3 gap-top"></div>`;
 }
@@ -373,7 +358,6 @@ function renderGameGrid() {
   const list = GAMES.filter(
     (g) =>
       (gameFilter.genre === 'Tous' || g.genre === gameFilter.genre) &&
-      (gameFilter.plan === 'all' || g.plan === gameFilter.plan) &&
       (!q || `${g.name} ${g.short} ${g.how}`.toLowerCase().includes(q)),
   );
   const grid = document.getElementById('game-grid');
@@ -392,7 +376,7 @@ function game(id) {
   <div class="detail">
     <div class="card">
       <div class="art" ${art(g)}>${g.emoji}</div>
-      <div class="row">${planBadge(g.plan)}<span class="badge">${esc(g.genre)}</span><span class="badge">${esc(g.level)}</span>${
+      <div class="row"><span class="badge">${esc(g.genre)}</span><span class="badge">${esc(g.level)}</span>${
         g.experimental ? '<span class="badge exp">EXPÉRIMENTAL</span>' : ''
       }</div>
       <h1 class="gap-top">${esc(g.name)}</h1>
@@ -413,7 +397,6 @@ function game(id) {
           <li><a href="#/telecharger">⬇ TokTok Game Connector Live (Windows)</a></li>
           ${g.downloads.map((d) => `<li><a href="${esc(d.url)}" rel="noopener" target="_blank">↗ ${esc(d.label)}</a></li>`).join('')}
         </ul>
-        ${g.plan === 'pro' ? '<p class="muted small">Ce jeu utilise une intégration <b>Pro</b>. <a href="#/tarifs">Voir Gratuit &amp; Pro</a></p>' : ''}
       </div>
     </div>
   </div>`;
@@ -426,7 +409,7 @@ function download() {
     <div class="big">⬇</div>
     <div class="grow">
       <h1>TokTok Game Connector Live</h1>
-      <p class="muted">Windows 10 / 11 (64 bits) · Gratuit · mises à jour automatiques</p>
+      <p class="muted">Windows 10 / 11 (64 bits) · 100 % gratuit, sans compte · mises à jour automatiques</p>
       <div id="release" class="row gap-top"><span class="muted">Recherche de la dernière version…</span></div>
     </div>
   </div>
@@ -466,208 +449,18 @@ async function loadRelease() {
   }
 }
 
-function pricing() {
-  setTimeout(loadPricingButtons, 0);
-  const free = [
-    'Connexion TikTok LIVE',
-    'Simulateur complet',
-    '3 actions actives',
-    'Overlays : alertes, top donateurs, objectif de likes',
-    'Minecraft Java & Bedrock, clavier & souris, jeux maison',
-    'Sons et voix Windows',
-  ];
-  const pro = [
-    'Tout le gratuit',
-    'Actions illimitées',
-    'Tous les overlays : chat, spectateurs, followers, roue, minuteur',
-    'Toutes les intégrations : manette, mods Unity, salles, webhook, GTA V Chaos',
-    'Kick et multistream TikTok + Kick',
-    'Éditeur de thèmes et voix ElevenLabs',
-    'Jusqu’à 3 PC par compte',
-  ];
-  return `
-  <div class="section-title first"><h2>Gratuit ou Pro</h2><span class="muted">L’app est gratuite. Le Pro débloque tout.</span></div>
-  <div class="plans">
-    <div class="card plan"><h3>Gratuit</h3><p class="muted">Pour découvrir et faire ses premiers lives interactifs.</p>
-      <ul>${free.map((f) => `<li>${f}</li>`).join('')}</ul>
-      <a class="btn" href="#/telecharger">⬇ Télécharger</a></div>
-    <div class="card plan pro"><h3>Pro <span class="badge pro">PRO</span></h3><p class="muted">Pour les créateurs qui veulent tout personnaliser.</p>
-      <ul>${pro.map((f) => `<li>${f}</li>`).join('')}</ul>
-      <div id="pro-actions" class="row"><span class="muted">…</span></div></div>
-  </div>
-  <p class="muted small gap-top">Paiement sécurisé par Stripe. Abonnement sans engagement : résiliation en un clic depuis ton compte,
-    le Pro reste actif jusqu’à la fin de la période payée.</p>`;
-}
-
-async function loadPricingButtons() {
-  const box = document.getElementById('pro-actions');
-  if (!box) return;
-  const me = await api('GET', '/v1/web/me').catch(() => null);
-  if (!me) {
-    box.innerHTML = '<a class="btn primary" href="#/compte">Créer un compte pour passer Pro</a>';
-  } else if (me.plan === 'pro') {
-    box.innerHTML = '<span class="notice ok">Tu es déjà Pro 🎉</span>';
-  } else {
-    box.innerHTML = upgradeButtons(me);
-    bindUpgrade(box);
-  }
-}
-
-function upgradeButtons(me) {
-  if (!me.billing.enabled || !me.billing.intervals.length)
-    return '<span class="notice">Le paiement en ligne ouvre bientôt.</span>';
-  return me.billing.intervals
-    .map(
-      (i) =>
-        `<button class="btn ${i === 'yearly' ? 'primary' : ''}" data-upgrade="${esc(i)}">Passer Pro (${i === 'yearly' ? 'annuel' : 'mensuel'})</button>`,
-    )
-    .join('');
-}
-
-function bindUpgrade(root) {
-  root.querySelectorAll('[data-upgrade]').forEach((b) =>
-    b.addEventListener('click', async () => {
-      b.disabled = true;
-      try {
-        const { url } = await api('POST', '/v1/web/checkout', { interval: b.dataset.upgrade });
-        if (new URL(url).hostname === 'checkout.stripe.com') location.href = url;
-      } catch (err) {
-        alert(err.message);
-        b.disabled = false;
-      }
-    }),
-  );
-}
-
-let accountMode = 'login';
-
-function account() {
-  setTimeout(loadAccount, 0);
-  return '<div id="account" class="grid cols-2"><div class="card"><span class="muted">Chargement…</span></div></div>';
-}
-
-async function loadAccount() {
-  const box = document.getElementById('account');
-  if (!box) return;
-  let me = null;
-  try {
-    me = await api('GET', '/v1/web/me');
-  } catch (err) {
-    if (err.status !== 401) {
-      box.innerHTML = `<div class="card notice error">${esc(err.message)}</div>`;
-      return;
-    }
-  }
-  if (!me) return renderSignIn(box);
-  const sub = me.subscription;
-  box.innerHTML = `
-    <div class="card stack">
-      <div class="row"><h2 class="flush">Mon compte</h2><span class="spacer"></span>${me.plan === 'pro' ? '<span class="badge pro">PRO</span>' : '<span class="badge free">GRATUIT</span>'}</div>
-      <div>${esc(me.email)}</div>
-      ${sub ? `<div class="muted">${sub.cancelAtPeriodEnd ? 'Abonnement résilié : Pro jusqu’au ' : 'Prochain renouvellement le '}${esc(sub.currentPeriodEnd ? dateFmt.format(new Date(sub.currentPeriodEnd)) : '—')}</div>` : ''}
-      ${me.proGranted && me.plan === 'pro' ? `<div class="muted">Pro offert${me.planUntil ? ` jusqu’au ${esc(dateFmt.format(new Date(me.planUntil)))}` : ''}</div>` : ''}
-      <div class="row">
-        ${me.plan !== 'pro' ? upgradeButtons(me) : ''}
-        ${sub ? '<button class="btn" id="portal">Gérer l’abonnement</button>' : ''}
-        <button class="btn ghost" id="logout">Se déconnecter</button>
-      </div>
-      <p class="muted small">Dans l’app (page <b>Compte</b>), connecte-toi avec le même email : ton plan s’applique automatiquement.
-        Mot de passe et suppression du compte se gèrent depuis l’app.</p>
-    </div>
-    <div class="card">
-      <h2>Mes PC (${me.devices.length}/${me.maxDevices})</h2>
-      ${
-        me.devices.length
-          ? `<ul class="list-plain">${me.devices
-              .map(
-                (
-                  d,
-                ) => `<li class="row"><div class="grow"><div>${esc(d.name)}</div><div class="muted small">Vu le ${esc(dateFmt.format(new Date(d.lastSeenAt)))}</div></div>
-                <button class="btn small ghost" data-device="${esc(d.id)}">Déconnecter</button></li>`,
-              )
-              .join('')}</ul>`
-          : `<p class="muted">Aucun PC pour l’instant. <a href="#/telecharger">Télécharge l’app</a> et connecte-toi dans la page Compte.</p>`
-      }
-    </div>`;
-  bindUpgrade(box);
-  box.querySelector('#logout')?.addEventListener('click', async () => {
-    await api('POST', '/v1/web/logout').catch(() => undefined);
-    loadAccount();
-  });
-  box.querySelector('#portal')?.addEventListener('click', async (e) => {
-    e.target.disabled = true;
-    try {
-      const { url } = await api('POST', '/v1/web/portal');
-      if (new URL(url).hostname === 'billing.stripe.com') location.href = url;
-    } catch (err) {
-      alert(err.message);
-      e.target.disabled = false;
-    }
-  });
-  box.querySelectorAll('[data-device]').forEach((b) =>
-    b.addEventListener('click', async () => {
-      if (!confirm('Déconnecter ce PC ? Il devra se reconnecter pour garder le Pro.')) return;
-      await api('DELETE', `/v1/web/devices/${encodeURIComponent(b.dataset.device)}`).catch((err) =>
-        alert(err.message),
-      );
-      loadAccount();
-    }),
-  );
-}
-
-function renderSignIn(box, message = '') {
-  const register = accountMode === 'register';
-  box.innerHTML = `
-    <form class="card stack" id="auth-form" novalidate>
-      <h2>${register ? 'Créer un compte' : 'Se connecter'}</h2>
-      ${message ? `<div class="notice error">${esc(message)}</div>` : ''}
-      <label>Email<input name="email" type="email" autocomplete="email" required /></label>
-      <label>Mot de passe${register ? ' (8 caractères minimum)' : ''}<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" required /></label>
-      ${register ? '<label>Confirmer le mot de passe<input name="confirm" type="password" autocomplete="new-password" required /></label>' : ''}
-      <div class="row"><button class="btn primary" type="submit">${register ? 'Créer mon compte' : 'Se connecter'}</button>
-        <button type="button" class="link-btn" id="switch">${register ? 'Déjà un compte ? Se connecter' : 'Pas de compte ? En créer un'}</button></div>
-      <p class="muted small">Le compte est gratuit. Il sert à ta licence (Gratuit ou Pro) dans l’app. <a href="#/confidentialite">Confidentialité</a></p>
-    </form>
-    <div class="card"><h2>Pourquoi un compte ?</h2>
-      <ul class="list-plain"><li>Passer Pro et gérer ton abonnement</li><li>Utiliser ton Pro sur 3 PC</li><li>L’app reste utilisable sans compte, en gratuit</li></ul></div>`;
-  box.querySelector('#switch').addEventListener('click', () => {
-    accountMode = register ? 'login' : 'register';
-    renderSignIn(box);
-  });
-  box.querySelector('#auth-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    const email = String(f.get('email') || '').trim();
-    const password = String(f.get('password') || '');
-    if (register && password !== f.get('confirm'))
-      return renderSignIn(box, 'Les mots de passe ne correspondent pas');
-    try {
-      await api('POST', register ? '/v1/web/register' : '/v1/web/login', { email, password });
-      loadAccount();
-    } catch (err) {
-      renderSignIn(box, err.message);
-    }
-  });
-}
-
 function privacy() {
   return `<div class="card prose">
     <h1>Confidentialité</h1>
-    <p>TokTok Game Connector Live fonctionne <b>sur ton PC</b> : les événements de ton live, tes actions, tes réglages et tes
-      intégrations restent sur ta machine. Les mots de passe de tes jeux et clés d’API y sont chiffrés par Windows.</p>
-    <h2>Ce que le serveur de comptes conserve</h2>
-    <ul>
-      <li>Ton email et ton mot de passe sous forme hachée (scrypt) : le mot de passe lui-même n’est jamais stocké.</li>
-      <li>La liste de tes PC connectés (nom de l’ordinateur, date de dernière utilisation).</li>
-      <li>Ton plan et l’état de ton abonnement (identifiants client et abonnement Stripe).</li>
-    </ul>
-    <h2>Paiement</h2>
-    <p>Le paiement est réalisé par <b>Stripe</b> : nous ne voyons ni ne stockons tes coordonnées bancaires.</p>
-    <h2>Cookies</h2>
-    <p>Cet espace n’utilise qu’un cookie technique de session (connexion à ton compte), sans pistage ni publicité.</p>
-    <h2>Suppression</h2>
-    <p>Tu peux supprimer ton compte à tout moment depuis l’app (page Compte → Sécurité) : ton compte, tes PC et ton abonnement
-      sont supprimés immédiatement.</p>
+    <p>TokTok Game Connector Live fonctionne <b>entièrement sur ton PC</b>, sans compte : les événements de ton live, tes
+      actions, tes réglages et tes intégrations restent sur ta machine. Les mots de passe de tes jeux et tes clés d’API y
+      sont chiffrés par Windows.</p>
+    <h2>Ce site</h2>
+    <p>Ce site ne demande aucune inscription et n’utilise aucun cookie, ni pistage, ni publicité. La page Téléchargements
+      interroge l’API publique de GitHub pour afficher la dernière version de l’app.</p>
+    <h2>Connexions de l’app</h2>
+    <p>L’app se connecte uniquement aux services que tu utilises : TikTok et/ou Kick (lecture du live), tes jeux, le
+      serveur de salles si tu l’actives, et GitHub pour les mises à jour.</p>
   </div>`;
 }
 
@@ -705,11 +498,6 @@ function bindGames() {
       renderGameGrid();
     }),
   );
-  document.querySelector('[data-plan]')?.addEventListener('click', (e) => {
-    gameFilter.plan = gameFilter.plan === 'free' ? 'all' : 'free';
-    e.currentTarget.classList.toggle('on', gameFilter.plan === 'free');
-    renderGameGrid();
-  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

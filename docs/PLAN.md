@@ -58,14 +58,11 @@ followers), éditeur de thèmes, i18n complet (tests de complétude FR/EN), mise
 (electron-updater, GitHub Releases, workflow Release), Chaos Mod expérimental (WebSocket de debug, vérifié dans
 les sources du mod, mai 2026).
 
-### Phase 4 ✅
+### Phase 4 → abandonnée : tout est gratuit
 
-Backend comptes, licences et Stripe (`apps/license-server`, Express + PostgreSQL sur Railway, projet
-`toktok-accounts`). Licences Ed25519 liées à l'appareil, vérifiées hors ligne (7 jours), clé privée générée et
-gardée par le serveur. Stripe Checkout + portail + webhooks signés (format API 2026 vérifié dans le SDK 23).
-Gratuit / Pro appliqué dans le processus principal : `packages/shared/src/entitlements.ts`.
-Reste à brancher par le propriétaire : clés Stripe et prix, `ADMIN_TOKEN`. Pas d'envoi d'email pour l'instant
-(réinitialisation du mot de passe par l'admin).
+Décision (octobre 2026) : pas d'abonnement Pro. Toutes les fonctions sont débloquées pour tous
+(`packages/core/src/entitlements.ts`). Le serveur `apps/license-server` sert l'espace web public ; son API de
+comptes / licences / Stripe, développée puis mise de côté, n'est plus utilisée par l'app ni par le site.
 
 ## Schéma SQLite
 

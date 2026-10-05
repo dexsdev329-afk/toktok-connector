@@ -4,7 +4,6 @@ import type { SoundDto, TtsState } from '../../../shared/api';
 import { Badge, Button, Card, Empty, Field, Input, Select, Textarea, Toggle } from '../components/ui';
 import { api } from '../lib/api';
 import { useAction, useLoad } from '../lib/hooks';
-import { useEntitlements } from '../lib/store';
 
 export function AudioPage() {
   return (
@@ -17,7 +16,6 @@ export function AudioPage() {
 
 function TtsCard() {
   const { t } = useTranslation();
-  const ent = useEntitlements();
   const [state, setState] = useState<TtsState | null>(null);
   const [voices] = useLoad(() => api.tts.voices());
   const [browserVoices, setBrowserVoices] = useState<string[]>([]);
@@ -60,9 +58,7 @@ function TtsCard() {
             >
               <option value="sapi">{t('audio.engines.sapi')}</option>
               <option value="browser">{t('audio.engines.browser')}</option>
-              <option value="elevenlabs" disabled={!ent.premiumTts}>
-                ElevenLabs{ent.premiumTts ? '' : ' (Pro)'}
-              </option>
+              <option value="elevenlabs">ElevenLabs</option>
             </Select>
           </Field>
           {state.engine !== 'elevenlabs' ? (

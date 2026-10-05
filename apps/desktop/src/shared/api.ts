@@ -111,8 +111,6 @@ export interface IntegrationDto {
   config: Record<string, unknown>;
   /** Secret fields that have a stored value. */
   secretsSet: string[];
-  /** Pro integration on the free plan: saved but not running. */
-  locked: boolean;
   status: { state: 'disconnected' | 'connecting' | 'connected' | 'error'; detail?: string };
   /** Effects of this instance (bridges include the effects declared by connected mods). */
   effects: EffectDefinitionDto[];
@@ -130,8 +128,6 @@ export interface IntegrationSaveInput {
 export interface OverlayDto extends OverlayConfig {
   url: string;
   connected: number;
-  /** Pro overlay on the free plan: not served. */
-  locked: boolean;
 }
 
 export type OverlaySaveInput = Omit<OverlayConfig, 'id'> & { id?: string };
@@ -210,20 +206,6 @@ export interface DesktopApi {
       seconds?: number,
     ): Promise<void>;
   };
-  account: {
-    get(): Promise<AccountState>;
-    register(email: string, password: string): Promise<LoginResult>;
-    login(email: string, password: string, replaceDevice?: string): Promise<LoginResult>;
-    logout(): Promise<void>;
-    refresh(): Promise<AccountState>;
-    /** Opens Stripe Checkout in the browser. */
-    upgrade(interval: 'monthly' | 'yearly'): Promise<void>;
-    /** Opens the Stripe customer portal in the browser. */
-    manageSubscription(): Promise<void>;
-    removeDevice(id: string): Promise<AccountState>;
-    changePassword(oldPassword: string, newPassword: string): Promise<void>;
-    deleteAccount(password: string): Promise<void>;
-  };
   updates: {
     get(): Promise<UpdateState>;
     check(): Promise<UpdateState>;
@@ -279,41 +261,6 @@ export interface DesktopApi {
     regenerateApiToken(): Promise<AppSettings>;
   };
 }
-
-/** Account summary returned by the accounts server. */
-export interface AccountSummary {
-  email: string;
-  plan: 'free' | 'pro';
-  planUntil: string | null;
-  proGranted: boolean;
-  subscription: { status: string | null; currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean } | null;
-  billing: { enabled: boolean; intervals: ('monthly' | 'yearly')[] };
-  maxDevices: number;
-  devices: { id: string; name: string; lastSeenAt: string; current: boolean }[];
-}
-
-export interface AccountState {
-  loggedIn: boolean;
-  email: string | null;
-  /** Effective plan (from the license verified offline). */
-  plan: 'free' | 'pro';
-  /** Development build with everything unlocked. */
-  devPro: boolean;
-  license:
-    { status: 'none' | 'expired' | 'invalid' } | { status: 'valid'; expiresAt: number; until?: number };
-  summary: AccountSummary | null;
-  lastError: string | null;
-  serverUrl: string;
-}
-
-export type LoginResult =
-  | { ok: true }
-  | {
-      ok: false;
-      error: 'device_limit';
-      message: string;
-      devices: { id: string; name: string; lastSeenAt: string }[];
-    };
 
 export interface UpdateState {
   /** "disabled" in development or outside Windows. */
@@ -376,7 +323,6 @@ export interface PushEvents {
   integrations: void;
   media: MediaRequest;
   updates: UpdateState;
-  account: AccountState;
 }
 
 export type ApiNamespace = keyof DesktopApi;

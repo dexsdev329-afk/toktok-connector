@@ -4,7 +4,7 @@ Application Windows (Electron) qui relie un **TikTok LIVE** et/ou un **live Kick
 communauté d'Anonyme Agency. Les cadeaux, likes, follows et messages des viewers déclenchent des effets en temps
 réel : commandes Minecraft, touches clavier, alertes à l'écran…
 
-> Statut : **phases 1 à 4 terminées** (TikTok, Kick, Minecraft, overlays, thèmes, mises à jour, comptes et licences Pro). Voir [docs/PLAN.md](docs/PLAN.md) pour la feuille de route.
+> Statut : **phases 1 à 3 terminées**, application **100 % gratuite** (TikTok, Kick, Minecraft, overlays, thèmes, mises à jour) et espace web public. Voir [docs/PLAN.md](docs/PLAN.md) pour la feuille de route.
 
 ## Fonctionnalités
 
@@ -267,31 +267,15 @@ curl -X POST -H "Authorization: Bearer <JETON>" http://127.0.0.1:21213/api/actio
 
 Le jeton se trouve dans **Réglages**.
 
-## Compte, Gratuit et Pro
+## Gratuit
 
-La page **Compte** permet de créer un compte (email + mot de passe), de se connecter (3 appareils par compte)
-et de passer **Pro** (paiement Stripe dans le navigateur, gestion de l'abonnement dans le portail Stripe).
+TokTok Game Connector Live est **entièrement gratuit** : toutes les fonctions, intégrations et overlays sont
+disponibles pour tout le monde, sans compte ni abonnement.
 
-|                                                        | Gratuit                                               | Pro                                                 |
-| ------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------------- |
-| Actions actives                                        | 3                                                     | illimitées                                          |
-| Overlays                                               | alertes, top donateurs, objectif de likes             | tous (chat, spectateurs, followers, roue, minuteur) |
-| Intégrations                                           | Minecraft Java/Bedrock, clavier & souris, jeux maison | toutes (manette, mods, webhook, salles, Chaos Mod)  |
-| Kick (multistream), éditeur de thèmes, voix ElevenLabs | —                                                     | ✓                                                   |
-
-Le plan vient d'une **licence signée** (Ed25519) que l'app vérifie hors ligne et renouvelle chaque jour : elle
-reste valable 7 jours sans Internet. Une licence copiée sur un autre PC est refusée. Les limites sont appliquées
-dans le processus principal (pas seulement dans l'interface). Les réglages de cette répartition sont dans
-`packages/shared/src/entitlements.ts`.
-
-**Espace web** (accueil, catalogue des jeux et guides, téléchargement, Gratuit/Pro, compte) :
-https://license-server-production-bb36.up.railway.app
-
-Serveur : `apps/license-server` (Express + PostgreSQL), déployé sur Railway (projet `toktok-accounts`). Voir son [README](apps/license-server/README.md)
-pour Stripe, l'admin (`/admin/grant` pour offrir le Pro) et les variables.
-
-En développement : `TOKTOK_DEV_PRO=1` débloque tout, `TOKTOK_ACCOUNT_SERVER=http://127.0.0.1:8080` utilise un
-serveur local (ignorés dans l'app installée).
+**Espace web** (accueil, catalogue des jeux avec guides, téléchargements) :
+https://license-server-production-bb36.up.railway.app — servi par `apps/license-server` sur Railway (projet
+`toktok-accounts`). Les illustrations des jeux se placent dans `apps/license-server/public/img/jeux/<id>.webp`
+(générables avec `apps/license-server/scripts/generate-game-images.mjs`).
 
 ## Mises à jour automatiques
 

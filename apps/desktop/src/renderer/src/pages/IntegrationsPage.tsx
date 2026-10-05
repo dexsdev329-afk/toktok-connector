@@ -6,16 +6,12 @@ import { api } from '../lib/api';
 import { useCatalog } from '../lib/catalog';
 import { useAction, useLoad } from '../lib/hooks';
 import { useStore } from '../lib/store';
-import { ProBadge } from '../components/ProBadge';
-import { useEntitlements } from '../lib/store';
-import { integrationAllowed } from '@toktok/shared';
 
 const STATE_COLOR = { connected: 'green', connecting: 'yellow', disconnected: 'gray', error: 'red' } as const;
 
 export function IntegrationsPage() {
   const { t } = useTranslation();
   const cat = useCatalog();
-  const ent = useEntitlements();
   const version = useStore((s) => s.integrationsVersion);
   const [defs] = useLoad(() => api.integrations.definitions());
   const [list, reload] = useLoad(() => api.integrations.list(), [version]);
@@ -41,14 +37,10 @@ export function IntegrationsPage() {
           {defs?.map((d) => (
             <button
               key={d.kind}
-              disabled={!integrationAllowed(ent, d.kind)}
               onClick={() => setEditing({ def: d, current: null })}
-              className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-left transition-colors hover:border-brand-500 disabled:cursor-default disabled:opacity-60 disabled:hover:border-ink-700"
+              className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-left transition-colors hover:border-brand-500"
             >
-              <div className="flex items-center gap-2 font-medium">
-                {cat.kindName(d.kind, d.name)}
-                {!integrationAllowed(ent, d.kind) && <ProBadge />}
-              </div>
+              <div className="font-medium">{cat.kindName(d.kind, d.name)}</div>
               <div className="mt-1 text-xs text-slate-400">{cat.kindDescription(d.kind, d.description)}</div>
             </button>
           ))}
@@ -70,7 +62,6 @@ export function IntegrationsPage() {
                       {i.status.detail ? ` — ${i.status.detail}` : ''}
                     </div>
                   </div>
-                  {i.locked && <ProBadge />}
                   <Badge color={i.enabled ? STATE_COLOR[i.status.state] : 'gray'}>
                     {i.enabled ? t(`integrations.states.${i.status.state}`) : '—'}
                   </Badge>
