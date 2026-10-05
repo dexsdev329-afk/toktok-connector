@@ -33,8 +33,10 @@ nsis:
   shortcutName: TokTok Game Connector Live
   uninstallDisplayName: TokTok Game Connector Live
   deleteAppDataOnUninstall: false
-# Auto-update (phase 3) will publish to GitHub Releases:
+# Auto-update: the release workflow publishes the installer + latest.yml to GitHub Releases
+# (public repository, so the app needs no token to read them).
 publish:
   provider: github
   owner: dexsdev329-afk
   repo: toktok-connector
+  releaseType: release

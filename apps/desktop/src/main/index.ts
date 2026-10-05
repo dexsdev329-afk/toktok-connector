@@ -4,11 +4,13 @@ import { app, BrowserWindow, session, shell } from 'electron';
 import type { PushEvents } from '../shared/api';
 import { AppCore } from './app-core';
 import { registerIpc } from './ipc';
+import { Updater } from './updater';
 import { configureSafeStorageForDev, loadGamepadDriver, loadInputDriver, safeStorageCipher } from './native';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | null = null;
 let core: AppCore | null = null;
+let updater: Updater | null = null;
 
 function log(level: 'info' | 'warn' | 'error', message: string): void {
   const line = `[${new Date().toISOString()}] ${level.toUpperCase()} ${message}`;
@@ -97,8 +99,10 @@ if (!app.requestSingleInstanceLock()) {
         media: (req) => push('media', req),
       },
     });
-    registerIpc(core, () => mainWindow);
+    updater = new Updater(core.repos.settings, (s) => push('updates', s), log);
+    registerIpc(core, updater, () => mainWindow);
     await core.start();
+    updater.start();
     log('info', `Serveur local : ${core.server.port ? core.server.origin : 'indisponible'}`);
     createWindow();
 
@@ -116,6 +120,7 @@ if (!app.requestSingleInstanceLock()) {
     if (quitting || !core) return;
     e.preventDefault();
     quitting = true;
+    updater?.stop();
     core
       .stop()
       .catch((err: unknown) => log('error', String(err)))

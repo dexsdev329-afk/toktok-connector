@@ -34,6 +34,7 @@ facultative peut être renseignée dans les réglages.
 | @jitsi/robotjs                                                     | MIT                                                                                |
 | rcon-client                                                        | MIT                                                                                |
 | ws                                                                 | MIT                                                                                |
+| electron-updater (et builder-util-runtime)                         | MIT                                                                                |
 | zod                                                                | MIT                                                                                |
 | tiktok-live-api-sdk (Euler Stream)                                 | MIT                                                                                |
 | @bufbuild/protobuf                                                 | Apache-2.0 AND BSD-3-Clause                                                        |

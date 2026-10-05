@@ -11,6 +11,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } f
 import { z } from 'zod';
 import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
 import type { AppCore } from './app-core';
+import type { Updater } from './updater';
 
 const id = z.string().min(1).max(100);
 const platformSchema = z.enum(['tiktok', 'kick']);
@@ -92,7 +93,7 @@ type Handlers = { [N in keyof DesktopApi]: { [M in keyof DesktopApi[N]]: (...arg
  * Registers the single "api" invoke channel. Arguments are validated with zod
  * before reaching the core; only the main window may call it.
  */
-export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null): void {
+export function registerIpc(core: AppCore, updater: Updater, getWindow: () => BrowserWindow | null): void {
   const handlers = {
     app: {
       info: () => ({
@@ -257,6 +258,13 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
         if (!o || !core.server.port) throw new Error('Overlay indisponible');
         await shell.openExternal(core.server.overlayUrl(o));
       },
+    },
+    updates: {
+      get: () => updater.get(),
+      check: () => updater.check(),
+      download: () => updater.download(),
+      install: () => updater.install(),
+      setAutoCheck: (on: unknown) => updater.setAutoCheck(z.boolean().parse(on)),
     },
     themes: {
       list: () => core.listThemes(),

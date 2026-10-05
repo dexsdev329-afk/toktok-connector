@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SettingsPatch } from '../../../shared/api';
-import { Badge, Button, Card, Field, Input, Select } from '../components/ui';
+import type { SettingsPatch, UpdateState } from '../../../shared/api';
+import { Badge, Button, Card, Field, Input, Select, Toggle } from '../components/ui';
 import { LANGUAGES, type Language } from '../i18n';
-import { api } from '../lib/api';
+import { api, onPush } from '../lib/api';
 import { useAction, useLoad } from '../lib/hooks';
 import { useStore } from '../lib/store';
 import { toast } from '../lib/toast';
@@ -50,6 +50,8 @@ export function SettingsPage() {
           </p>
         )}
       </Card>
+
+      <UpdatesCard />
 
       <Card title={t('settings.gifts')}>
         <div className="flex flex-wrap items-end gap-3">
@@ -143,5 +145,69 @@ export function SettingsPage() {
         <pre className="mt-1 overflow-x-auto rounded-lg bg-ink-950 p-2 text-xs text-slate-300">{curl}</pre>
       </Card>
     </div>
+  );
+}
+
+function UpdatesCard() {
+  const { t } = useTranslation();
+  const [state, setState] = useState<UpdateState | null>(null);
+  useEffect(() => {
+    void api.updates.get().then(setState);
+    return onPush('updates', setState);
+  }, []);
+  const [check, checking] = useAction(async () => setState(await api.updates.check()));
+  const [download] = useAction(() => api.updates.download());
+  const [install] = useAction(() => api.updates.install());
+  const [setAuto] = useAction(async (on: boolean) => setState(await api.updates.setAutoCheck(on)));
+  if (!state) return null;
+  const disabled = state.status === 'disabled';
+  return (
+    <Card title={t('updates.title')}>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm">{t('updates.current', { v: state.currentVersion })}</span>
+        <Badge
+          color={
+            state.status === 'available' || state.status === 'downloaded'
+              ? 'green'
+              : state.status === 'error'
+                ? 'red'
+                : 'gray'
+          }
+        >
+          {t(`updates.status.${state.status}`, { v: state.version ?? '', p: state.percent ?? 0 })}
+        </Badge>
+      </div>
+      {state.error && <p className="mt-2 text-xs text-red-300">{state.error}</p>}
+      {state.notes && state.status === 'available' && (
+        <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-ink-850 p-2 text-xs text-slate-300">
+          {state.notes}
+        </pre>
+      )}
+      {state.status === 'downloading' && (
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-800">
+          <div className="h-full bg-brand-500 transition-all" style={{ width: `${state.percent ?? 0}%` }} />
+        </div>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        {state.status === 'available' ? (
+          <Button variant="primary" onClick={() => void download()}>
+            ⬇ {t('updates.download', { v: state.version })}
+          </Button>
+        ) : state.status === 'downloaded' ? (
+          <Button variant="primary" onClick={() => void install()}>
+            ↻ {t('updates.install')}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => void check()}
+            disabled={disabled || checking || state.status === 'checking' || state.status === 'downloading'}
+          >
+            {t('updates.check')}
+          </Button>
+        )}
+        <Toggle checked={state.autoCheck} onChange={(v) => void setAuto(v)} label={t('updates.autoCheck')} />
+      </div>
+      {disabled && <p className="mt-2 text-xs text-slate-500">{t('updates.disabledHelp')}</p>}
+    </Card>
   );
 }

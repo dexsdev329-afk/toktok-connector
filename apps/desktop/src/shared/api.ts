@@ -206,6 +206,13 @@ export interface DesktopApi {
       seconds?: number,
     ): Promise<void>;
   };
+  updates: {
+    get(): Promise<UpdateState>;
+    check(): Promise<UpdateState>;
+    download(): Promise<void>;
+    install(): Promise<void>;
+    setAutoCheck(on: boolean): Promise<UpdateState>;
+  };
   themes: {
     /** User themes (the built-in presets live in @toktok/shared). */
     list(): Promise<OverlayThemeDef[]>;
@@ -255,6 +262,19 @@ export interface DesktopApi {
   };
 }
 
+export interface UpdateState {
+  /** "disabled" in development or outside Windows. */
+  status:
+    'disabled' | 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  currentVersion: string;
+  version?: string;
+  notes?: string;
+  percent?: number;
+  error?: string;
+  checkedAt?: number;
+  autoCheck: boolean;
+}
+
 /** Audio requests played by the renderer. */
 export type MediaRequest =
   | { id: string; kind: 'audio'; src: string; volume: number }
@@ -302,6 +322,7 @@ export interface PushEvents {
   journal: JournalEntry[];
   integrations: void;
   media: MediaRequest;
+  updates: UpdateState;
 }
 
 export type ApiNamespace = keyof DesktopApi;

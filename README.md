@@ -249,6 +249,21 @@ curl -X POST -H "Authorization: Bearer <JETON>" http://127.0.0.1:21213/api/actio
 
 Le jeton se trouve dans **Réglages**.
 
+## Mises à jour automatiques
+
+L'application installée vérifie les nouvelles versions sur les **GitHub Releases** du dépôt (au démarrage puis
+toutes les 6 h, désactivable dans **Réglages → Mises à jour**). Rien n'est téléchargé sans clic : « Télécharger »,
+puis « Redémarrer et installer » (sinon la mise à jour s'installe à la fermeture de l'app).
+
+Publier une version :
+
+1. Monter `version` dans `apps/desktop/package.json` (ex. `0.2.0`) et committer.
+2. Pousser le tag correspondant : `git tag v0.2.0 && git push origin v0.2.0`.
+3. Le workflow **Release** construit l'installateur et le publie avec `latest.yml` sur GitHub Releases.
+
+L'installateur n'est pas signé (choix du projet) : Windows SmartScreen peut afficher un avertissement à la
+première installation.
+
 ## Sécurité
 
 - Les secrets (mot de passe RCON, clé API) sont **chiffrés avec `safeStorage`** (DPAPI sous Windows) et ne
