@@ -39,5 +39,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: apps/desktop/release/**/*.exe
+          path: apps/desktop/release/*/TokTok-Game-Connector-Live-Setup-*.exe
           if-no-files-found: error
