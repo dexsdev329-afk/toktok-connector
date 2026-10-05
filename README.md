@@ -4,7 +4,7 @@ Application Windows (Electron) qui relie un **TikTok LIVE** et/ou un **live Kick
 communauté d'Anonyme Agency. Les cadeaux, likes, follows et messages des viewers déclenchent des effets en temps
 réel : commandes Minecraft, touches clavier, alertes à l'écran…
 
-> Statut : **phases 1 à 3 terminées** (TikTok, Kick, Minecraft, overlays, thèmes, mises à jour). Phase 4 (comptes, licences) à venir. Voir [docs/PLAN.md](docs/PLAN.md) pour la feuille de route.
+> Statut : **phases 1 à 4 terminées** (TikTok, Kick, Minecraft, overlays, thèmes, mises à jour, comptes et licences Pro). Voir [docs/PLAN.md](docs/PLAN.md) pour la feuille de route.
 
 ## Fonctionnalités
 
@@ -266,6 +266,30 @@ curl -X POST -H "Authorization: Bearer <JETON>" http://127.0.0.1:21213/api/actio
 ```
 
 Le jeton se trouve dans **Réglages**.
+
+## Compte, Gratuit et Pro
+
+La page **Compte** permet de créer un compte (email + mot de passe), de se connecter (3 appareils par compte)
+et de passer **Pro** (paiement Stripe dans le navigateur, gestion de l'abonnement dans le portail Stripe).
+
+|                                                        | Gratuit                                               | Pro                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------------- |
+| Actions actives                                        | 3                                                     | illimitées                                          |
+| Overlays                                               | alertes, top donateurs, objectif de likes             | tous (chat, spectateurs, followers, roue, minuteur) |
+| Intégrations                                           | Minecraft Java/Bedrock, clavier & souris, jeux maison | toutes (manette, mods, webhook, salles, Chaos Mod)  |
+| Kick (multistream), éditeur de thèmes, voix ElevenLabs | —                                                     | ✓                                                   |
+
+Le plan vient d'une **licence signée** (Ed25519) que l'app vérifie hors ligne et renouvelle chaque jour : elle
+reste valable 7 jours sans Internet. Une licence copiée sur un autre PC est refusée. Les limites sont appliquées
+dans le processus principal (pas seulement dans l'interface). Les réglages de cette répartition sont dans
+`packages/shared/src/entitlements.ts`.
+
+Serveur : `apps/license-server` (Express + PostgreSQL), déployé sur Railway (projet `toktok-accounts`) :
+`https://license-server-production-bb36.up.railway.app`. Voir son [README](apps/license-server/README.md)
+pour Stripe, l'admin (`/admin/grant` pour offrir le Pro) et les variables.
+
+En développement : `TOKTOK_DEV_PRO=1` débloque tout, `TOKTOK_ACCOUNT_SERVER=http://127.0.0.1:8080` utilise un
+serveur local (ignorés dans l'app installée).
 
 ## Mises à jour automatiques
 
