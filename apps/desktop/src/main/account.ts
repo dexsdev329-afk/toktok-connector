@@ -11,7 +11,7 @@ import { LICENSE_PUBLIC_KEY, checkLicense, type SecretsRepo, type SettingsRepo }
 import type { AccountState, AccountSummary, LoginResult } from '../shared/api';
 
 /** Production accounts server (apps/license-server on Railway). */
-export const DEFAULT_ACCOUNT_SERVER = 'https://license-server-production.up.railway.app';
+export const DEFAULT_ACCOUNT_SERVER = 'https://license-server-production-bb36.up.railway.app';
 
 const KEYS = {
   deviceId: 'account.deviceId',
