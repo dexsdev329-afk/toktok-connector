@@ -31,6 +31,18 @@ export interface AppDeps {
   now?: () => Date;
   /** Auth requests allowed per IP and minute (default 20). */
   authPerMinute?: number;
+  /** owner/repo hosting the releases (default: the project repository). */
+  githubRepo?: string;
+  fetchJson?: (url: string) => Promise<unknown>;
+}
+
+async function defaultFetchJson(url: string): Promise<unknown> {
+  const res = await fetch(url, {
+    headers: { accept: 'application/vnd.github+json', 'user-agent': 'toktok-site' },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`GitHub ${res.status}`);
+  return res.json();
 }
 
 class HttpError extends Error {
@@ -563,6 +575,34 @@ export function createApp(deps: AppDeps): express.Express {
       return { email: user.email, temporaryPassword: temporary };
     }),
   );
+
+  // ------------------------------------------------------------ download (latest installer)
+
+  const releasesPage = `https://github.com/${deps.githubRepo ?? 'dexsdev329-afk/toktok-connector'}/releases`;
+  let latestExe: { url: string; at: number } | null = null;
+  /** Redirects to the installer of the latest GitHub release (looked up at most every 5 minutes). */
+  app.get('/telecharger/windows', (_req, res, next) => {
+    const send = (url: string) => res.redirect(302, url);
+    if (latestExe && now().getTime() - latestExe.at < 300_000) return send(latestExe.url);
+    (deps.fetchJson ?? defaultFetchJson)(
+      `https://api.github.com/repos/${deps.githubRepo ?? 'dexsdev329-afk/toktok-connector'}/releases/latest`,
+    )
+      .then((rel) => {
+        const assets = (rel as { assets?: { name?: string; browser_download_url?: string }[] }).assets ?? [];
+        const exe = assets.find(
+          (a) => /\.exe$/i.test(a.name ?? '') && a.browser_download_url?.startsWith('https://github.com/'),
+        );
+        if (!exe?.browser_download_url) return send(releasesPage);
+        latestExe = { url: exe.browser_download_url, at: now().getTime() };
+        send(exe.browser_download_url);
+      })
+      .catch((err: unknown) => {
+        log('warn', `Téléchargement : ${String(err)}`);
+        if (latestExe) return send(latestExe.url);
+        send(releasesPage);
+      })
+      .catch(next);
+  });
 
   // ------------------------------------------------------------ web space (static)
 

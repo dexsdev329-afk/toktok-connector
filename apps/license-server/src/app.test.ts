@@ -71,6 +71,18 @@ beforeAll(async () => {
     maxDevices: 2,
     licenseTtlDays: 7,
     authPerMinute: 1000,
+    fetchJson: async () => ({
+      assets: [
+        {
+          name: 'latest.yml',
+          browser_download_url: 'https://github.com/x/y/releases/download/v1/latest.yml',
+        },
+        {
+          name: 'Setup-1.exe',
+          browser_download_url: 'https://github.com/x/y/releases/download/v1/Setup-1.exe',
+        },
+      ],
+    }),
   });
   const server = app.listen(0);
   await new Promise((r) => server.once('listening', r));
@@ -423,6 +435,12 @@ describe('license server', () => {
     expect((await web('GET', '/v1/web/me', undefined, cookie)).status).toBe(401);
     const login = await web('POST', '/v1/web/login', { email: 'web@example.com', password: 'motdepasse' });
     expect(login.status).toBe(200);
+  });
+
+  it('redirects to the latest Windows installer', async () => {
+    const res = await fetch(`${base}/telecharger/windows`, { redirect: 'manual' });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('https://github.com/x/y/releases/download/v1/Setup-1.exe');
   });
 
   it('answers health checks and unknown routes', async () => {

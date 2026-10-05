@@ -276,7 +276,7 @@ function home() {
       <p class="lead">Un cadeau fait apparaître un zombie, un follow lance une roue, un « !tnt » dans le chat fait tout
         exploser. Choisis ton jeu, installe l’app et laisse ta communauté jouer avec toi.</p>
       <div class="hero-actions">
-        <a class="btn primary" href="#/telecharger">⬇ Télécharger l’app</a>
+        <a class="btn primary" href="/telecharger/windows">⬇ Télécharger l’app</a>
         <a class="btn" href="#/jeux">🎮 Choisir un jeu</a>
       </div>
     </div>
@@ -421,31 +421,38 @@ function download() {
       <div class="row"><a class="btn small" href="${tree('examples/unity-bepinex-bridge')}" rel="noopener" target="_blank">Exemple BepInEx</a>
       <a class="btn small ghost" href="${blob('docs/bridge-protocol.md')}" rel="noopener" target="_blank">Protocole</a></div></div>
   </div>
-  <p class="muted small gap-top">L’installateur n’est pas signé : au premier lancement, Windows SmartScreen peut afficher
-    « Informations complémentaires → Exécuter quand même ». Toutes les versions : <a href="${RELEASES_URL}" rel="noopener">GitHub Releases</a>.</p>`;
+  <div class="card gap-top">
+    <h3>🛡️ « Windows a protégé votre ordinateur » / « Application inconnue » ?</h3>
+    <p class="muted">C’est normal pour une nouvelle application pas encore signée numériquement : Windows SmartScreen ne la connaît pas encore.</p>
+    <ol class="guide">
+      <li>Ouvre le fichier <code>TokTok-Game-Connector-Live-Setup-….exe</code> téléchargé.</li>
+      <li>Dans la fenêtre bleue, clique sur <b>Informations complémentaires</b>.</li>
+      <li>Puis sur <b>Exécuter quand même</b>, et suis l’installation.</li>
+    </ol>
+    <p class="muted small">Si ton navigateur bloque le téléchargement : ouvre la liste des téléchargements (Ctrl+J) et choisis « Conserver ».
+      Toutes les versions : <a href="${RELEASES_URL}" rel="noopener">GitHub Releases</a>.</p>
+  </div>`;
 }
 
 async function loadRelease() {
   const box = document.getElementById('release');
   if (!box) return;
+  // The button always works: the server redirects to the latest installer.
+  box.innerHTML = '<a class="btn primary" href="/telecharger/windows">⬇ Télécharger pour Windows (.exe)</a>';
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
       headers: { accept: 'application/vnd.github+json' },
     });
-    if (res.status === 404) throw new Error('none');
-    if (!res.ok) throw new Error(String(res.status));
+    if (!res.ok) return;
     const rel = await res.json();
     const exe = (rel.assets || []).find((a) => /\.exe$/i.test(a.name));
-    const size = exe ? ` · ${(exe.size / 1048576).toFixed(0)} Mo` : '';
-    box.innerHTML = exe
-      ? `<a class="btn primary" href="${esc(exe.browser_download_url)}">⬇ Télécharger ${esc(rel.tag_name)} (.exe)</a>
-         <span class="muted small">${esc(dateFmt.format(new Date(rel.published_at)))}${size}</span>`
-      : `<a class="btn primary" href="${esc(rel.html_url)}" rel="noopener">Voir la version ${esc(rel.tag_name)}</a>`;
-  } catch (err) {
-    box.innerHTML =
-      err.message === 'none'
-        ? `<span class="notice">La première version publique arrive bientôt. <a href="${RELEASES_URL}" rel="noopener">Suivre les versions</a></span>`
-        : `<a class="btn" href="${RELEASES_URL}" rel="noopener">Voir les versions sur GitHub</a>`;
+    if (!exe) return;
+    box.insertAdjacentHTML(
+      'beforeend',
+      `<span class="muted small">Version ${esc(rel.tag_name)} · ${esc(dateFmt.format(new Date(rel.published_at)))} · ${(exe.size / 1048576).toFixed(0)} Mo</span>`,
+    );
+  } catch {
+    // version details are optional
   }
 }
 
