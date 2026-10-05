@@ -1,0 +1,23 @@
+{
+  "name": "@toktok/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@toktok/shared": "workspace:*",
+    "better-sqlite3": "^13.0.3",
+    "tiktok-live-connector": "2.5.0",
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/ws": "^8.18.2"
+  }
+}
