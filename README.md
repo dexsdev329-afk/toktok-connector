@@ -284,8 +284,10 @@ reste valable 7 jours sans Internet. Une licence copiée sur un autre PC est ref
 dans le processus principal (pas seulement dans l'interface). Les réglages de cette répartition sont dans
 `packages/shared/src/entitlements.ts`.
 
-Serveur : `apps/license-server` (Express + PostgreSQL), déployé sur Railway (projet `toktok-accounts`) :
-`https://license-server-production-bb36.up.railway.app`. Voir son [README](apps/license-server/README.md)
+**Espace web** (accueil, catalogue des jeux et guides, téléchargement, Gratuit/Pro, compte) :
+https://license-server-production-bb36.up.railway.app
+
+Serveur : `apps/license-server` (Express + PostgreSQL), déployé sur Railway (projet `toktok-accounts`). Voir son [README](apps/license-server/README.md)
 pour Stripe, l'admin (`/admin/grant` pour offrir le Pro) et les variables.
 
 En développement : `TOKTOK_DEV_PRO=1` débloque tout, `TOKTOK_ACCOUNT_SERVER=http://127.0.0.1:8080` utilise un

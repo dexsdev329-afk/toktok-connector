@@ -39,6 +39,13 @@ const MIGRATIONS: string[] = [
      private_pem text NOT NULL,
      created_at timestamptz NOT NULL DEFAULT now()
    )`,
+  // Browser sessions of the web space (cookie), separate from app devices.
+  `CREATE TABLE web_sessions (
+     token_hash text PRIMARY KEY,
+     user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     expires_at timestamptz NOT NULL
+   )`,
 ];
 
 /** Applies pending migrations (each one exactly once, in order). */

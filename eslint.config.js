@@ -13,7 +13,7 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['apps/rooms-server/public/**/*.js'],
+    files: ['apps/rooms-server/public/**/*.js', 'apps/license-server/public/**/*.js'],
     languageOptions: { globals: globals.browser, sourceType: 'script' },
   },
   {

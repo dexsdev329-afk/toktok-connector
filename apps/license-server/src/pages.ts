@@ -12,5 +12,5 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0b1
 main{max-width:480px;padding:32px;border-radius:18px;background:#14141f;border:1px solid #2a2a3d;text-align:center}
 h1{font-size:22px;margin:0 0 12px}p{color:#a8a8bd;line-height:1.5}b{color:#ff2d75}
 </style></head>
-<body><main><h1>${escape(title)}</h1><p>${escape(text)}</p><p><b>TokTok</b> Game Connector Live</p></main></body></html>`;
+<body><main><h1>${escape(title)}</h1><p>${escape(text)}</p><p><a href="/#/compte" style="color:#22e3ff">Retour à l’espace TokTok</a></p><p><b>TokTok</b> Game Connector Live</p></main></body></html>`;
 }

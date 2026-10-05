@@ -161,6 +161,34 @@ export class Store {
     await this.db.query('DELETE FROM devices WHERE user_id = $1 AND id <> $2', [userId, keepId]);
   }
 
+  // ------------------------------------------------------------ web sessions
+
+  async createWebSession(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.db.query('DELETE FROM web_sessions WHERE expires_at < now()');
+    await this.db.query('INSERT INTO web_sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)', [
+      tokenHash,
+      userId,
+      expiresAt,
+    ]);
+  }
+
+  async webSessionUser(tokenHash: string): Promise<UserRow | null> {
+    const { rows } = await this.db.query<UserRow>(
+      `SELECT u.* FROM web_sessions s JOIN users u ON u.id = s.user_id
+        WHERE s.token_hash = $1 AND s.expires_at > now()`,
+      [tokenHash],
+    );
+    return rows[0] ?? null;
+  }
+
+  async deleteWebSession(tokenHash: string): Promise<void> {
+    await this.db.query('DELETE FROM web_sessions WHERE token_hash = $1', [tokenHash]);
+  }
+
+  async deleteWebSessions(userId: string): Promise<void> {
+    await this.db.query('DELETE FROM web_sessions WHERE user_id = $1', [userId]);
+  }
+
   // ------------------------------------------------------------ stripe events
 
   /** Returns false when the event was already processed (Stripe retries deliveries). */

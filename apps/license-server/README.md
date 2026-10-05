@@ -3,6 +3,16 @@
 Comptes, appareils, licences signées et abonnement Pro (Stripe) pour TokTok Game Connector Live.
 Express 5 + PostgreSQL, déployé sur Railway.
 
+## Espace web
+
+Le serveur sert aussi l'**espace web** public (`public/`, HTML/CSS/JS sans dépendance) :
+accueil, catalogue des jeux compatibles avec guide d'installation, téléchargement de l'app (dernière version
+lue sur GitHub Releases), Gratuit / Pro, compte (connexion web par cookie de session `HttpOnly`,
+`SameSite=Strict` + contrôle d'origine, sans occuper de place d'appareil) et confidentialité. CSP stricte :
+aucun script ni style en ligne, aucune ressource externe sauf l'API GitHub.
+
+Routes web : `POST /v1/web/register|login|logout|checkout|portal`, `GET /v1/web/me`, `DELETE /v1/web/devices/:id`.
+
 ## Fonctionnement
 
 - **Compte** : email + mot de passe (scrypt). 3 appareils maximum par compte (`MAX_DEVICES`) ; à la

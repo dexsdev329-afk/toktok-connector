@@ -1,4 +1,5 @@
 import type { KeyObject } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { timingSafeEqual } from 'node:crypto';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
@@ -55,6 +56,20 @@ const DeviceFields = {
   deviceName: z.string().trim().min(1).max(80),
 };
 const RegisterBody = z.object({ email: Email, password: Password, ...DeviceFields });
+const WebCredentials = z.object({ email: Email, password: z.string().min(1).max(200) });
+
+const SESSION_COOKIE = 'tt_session';
+const WEB_SESSION_DAYS = 7;
+/** The web space (static files next to src/ and dist/). */
+const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
+
+function readCookie(req: Request, name: string): string | null {
+  for (const part of (req.get('cookie') ?? '').split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k === name) return decodeURIComponent(v.join('='));
+  }
+  return null;
+}
 const LoginBody = z.object({
   email: Email,
   password: z.string().min(1).max(200),
@@ -79,6 +94,8 @@ export function createApp(deps: AppDeps): express.Express {
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
+    if (_req.path.startsWith('/v1/') || _req.path.startsWith('/admin/'))
+      res.setHeader('Cache-Control', 'no-store');
     next();
   });
 
@@ -137,6 +154,78 @@ export function createApp(deps: AppDeps): express.Express {
     const found = m ? await store.deviceByToken(hashToken(m[1]!)) : null;
     if (!found) throw new HttpError(401, 'unauthorized', 'Session expirée, reconnecte-toi');
     return found;
+  };
+
+  const secureCookies = deps.publicUrl.startsWith('https://');
+  const siteOrigin = new URL(deps.publicUrl).origin;
+
+  const setSessionCookie = (res: Response, token: string, maxAgeSec: number) => {
+    res.setHeader(
+      'Set-Cookie',
+      `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${maxAgeSec}${secureCookies ? '; Secure' : ''}`,
+    );
+  };
+
+  const startWebSession = async (res: Response, user: UserRow) => {
+    const token = newToken();
+    await store.createWebSession(
+      user.id,
+      hashToken(token),
+      new Date(now().getTime() + WEB_SESSION_DAYS * 86_400_000),
+    );
+    setSessionCookie(res, token, WEB_SESSION_DAYS * 86_400);
+  };
+
+  /** State-changing web requests must come from the site itself (CSRF), on top of SameSite=Strict. */
+  const sameOrigin = (req: Request) => {
+    if (req.get('origin') !== siteOrigin) throw new HttpError(403, 'forbidden', 'Origine refusée');
+  };
+
+  const webAuth = async (req: Request): Promise<UserRow> => {
+    const token = readCookie(req, SESSION_COOKIE);
+    const user = token && /^[\w-]{20,100}$/.test(token) ? await store.webSessionUser(hashToken(token)) : null;
+    if (!user) throw new HttpError(401, 'unauthorized', 'Connecte-toi');
+    return user;
+  };
+
+  const checkout = async (user: UserRow, body: unknown) => {
+    if (!billing) throw new HttpError(503, 'billing_disabled', 'Le paiement n’est pas encore ouvert');
+    const { interval } = parse(z.object({ interval: z.enum(['monthly', 'yearly']) }), body);
+    if (!billing.intervals().includes(interval)) throw new HttpError(400, 'invalid', 'Formule indisponible');
+    if (effectivePlan(user, now()).plan === 'pro' && user.subscription_id) {
+      throw new HttpError(409, 'already_pro', 'Tu es déjà abonné : gère ton abonnement depuis le portail');
+    }
+    const url = await billing.createCheckout({
+      userId: user.id,
+      email: user.email,
+      customerId: user.stripe_customer_id,
+      interval: interval as Interval,
+      successUrl: `${deps.publicUrl}/billing/success`,
+      cancelUrl: `${deps.publicUrl}/billing/cancel`,
+    });
+    return { url };
+  };
+
+  const portal = async (user: UserRow) => {
+    if (!billing) throw new HttpError(503, 'billing_disabled', 'Le paiement n’est pas encore ouvert');
+    if (!user.stripe_customer_id)
+      throw new HttpError(404, 'no_customer', 'Aucun abonnement associé à ce compte');
+    return { url: await billing.createPortal(user.stripe_customer_id, `${deps.publicUrl}/billing/return`) };
+  };
+
+  /** Password check shared by the app and the web space (lockout checked first). */
+  const checkCredentials = async (email: string, password: string): Promise<UserRow> => {
+    if (failuresByEmail.blocked(email)) {
+      throw new HttpError(429, 'rate_limited', 'Trop d’essais pour ce compte, réessaie dans 15 minutes');
+    }
+    const user = await store.userByEmail(email);
+    const ok = await verifyPassword(password, user?.password_hash ?? DUMMY_PASSWORD_HASH);
+    if (!user || !ok) {
+      failuresByEmail.hit(email);
+      throw new HttpError(401, 'bad_credentials', 'Email ou mot de passe incorrect');
+    }
+    failuresByEmail.reset(email);
+    return user;
   };
 
   const limitIp = (req: Request) => {
@@ -262,17 +351,7 @@ export function createApp(deps: AppDeps): express.Express {
     route(async (req) => {
       limitIp(req);
       const body = parse(LoginBody, req.body);
-      // Checked before the password: a locked account must not reveal a correct guess.
-      if (failuresByEmail.blocked(body.email)) {
-        throw new HttpError(429, 'rate_limited', 'Trop d’essais pour ce compte, réessaie dans 15 minutes');
-      }
-      const user = await store.userByEmail(body.email);
-      const ok = await verifyPassword(body.password, user?.password_hash ?? DUMMY_PASSWORD_HASH);
-      if (!user || !ok) {
-        failuresByEmail.hit(body.email);
-        throw new HttpError(401, 'bad_credentials', 'Email ou mot de passe incorrect');
-      }
-      failuresByEmail.reset(body.email);
+      const user = await checkCredentials(body.email, body.password);
       const devices = await store.devices(user.id);
       if (body.replaceDevice) await store.deleteDevice(user.id, body.replaceDevice);
       const known = devices.some((d) => d.device_id === body.deviceId);
@@ -304,8 +383,9 @@ export function createApp(deps: AppDeps): express.Express {
         throw new HttpError(401, 'bad_credentials', 'Mot de passe actuel incorrect');
       }
       await store.setPassword(user.id, await hashPassword(body.newPassword));
-      // Other devices must sign in again with the new password.
+      // Other devices and browsers must sign in again with the new password.
       await store.deleteOtherDevices(user.id, device.id);
+      await store.deleteWebSessions(user.id);
       return { ok: true };
     }),
   );
@@ -360,35 +440,86 @@ export function createApp(deps: AppDeps): express.Express {
 
   app.post(
     '/v1/billing/checkout',
-    route(async (req) => {
-      const { user } = await auth(req);
-      if (!billing) throw new HttpError(503, 'billing_disabled', 'Le paiement n’est pas encore ouvert');
-      const { interval } = parse(z.object({ interval: z.enum(['monthly', 'yearly']) }), req.body);
-      if (!billing.intervals().includes(interval))
-        throw new HttpError(400, 'invalid', 'Formule indisponible');
-      if (effectivePlan(user, now()).plan === 'pro' && user.subscription_id) {
-        throw new HttpError(409, 'already_pro', 'Tu es déjà abonné : gère ton abonnement depuis le portail');
-      }
-      const url = await billing.createCheckout({
-        userId: user.id,
-        email: user.email,
-        customerId: user.stripe_customer_id,
-        interval: interval as Interval,
-        successUrl: `${deps.publicUrl}/billing/success`,
-        cancelUrl: `${deps.publicUrl}/billing/cancel`,
-      });
-      return { url };
-    }),
+    route(async (req) => checkout((await auth(req)).user, req.body)),
   );
 
   app.post(
     '/v1/billing/portal',
+    route(async (req) => portal((await auth(req)).user)),
+  );
+
+  // ------------------------------------------------------------ web space (cookie session)
+
+  app.post(
+    '/v1/web/register',
+    route(async (req, res) => {
+      sameOrigin(req);
+      limitIp(req);
+      const body = parse(z.object({ email: Email, password: Password }), req.body);
+      const user = await store.createUser(body.email, await hashPassword(body.password));
+      if (!user) throw new HttpError(409, 'email_taken', 'Un compte existe déjà avec cet email');
+      log('info', `Nouveau compte (web) ${user.email}`);
+      await startWebSession(res, user);
+      res.status(201);
+      return account(user);
+    }),
+  );
+
+  app.post(
+    '/v1/web/login',
+    route(async (req, res) => {
+      sameOrigin(req);
+      limitIp(req);
+      const body = parse(WebCredentials, req.body);
+      const user = await checkCredentials(body.email, body.password);
+      await startWebSession(res, user);
+      return account(user);
+    }),
+  );
+
+  app.post(
+    '/v1/web/logout',
+    route(async (req, res) => {
+      sameOrigin(req);
+      const token = readCookie(req, SESSION_COOKIE);
+      if (token) await store.deleteWebSession(hashToken(token));
+      setSessionCookie(res, '', 0);
+      return { ok: true };
+    }),
+  );
+
+  app.get(
+    '/v1/web/me',
     route(async (req) => {
-      const { user } = await auth(req);
-      if (!billing) throw new HttpError(503, 'billing_disabled', 'Le paiement n’est pas encore ouvert');
-      if (!user.stripe_customer_id)
-        throw new HttpError(404, 'no_customer', 'Aucun abonnement associé à ce compte');
-      return { url: await billing.createPortal(user.stripe_customer_id, `${deps.publicUrl}/billing/return`) };
+      return account(await webAuth(req));
+    }),
+  );
+
+  app.post(
+    '/v1/web/checkout',
+    route(async (req) => {
+      sameOrigin(req);
+      return checkout(await webAuth(req), req.body);
+    }),
+  );
+
+  app.post(
+    '/v1/web/portal',
+    route(async (req) => {
+      sameOrigin(req);
+      return portal(await webAuth(req));
+    }),
+  );
+
+  app.delete(
+    '/v1/web/devices/:id',
+    route(async (req) => {
+      sameOrigin(req);
+      const user = await webAuth(req);
+      const id = parse(z.uuid(), req.params.id);
+      if (!(await store.deleteDevice(user.id, id)))
+        throw new HttpError(404, 'not_found', 'Appareil introuvable');
+      return account(user);
     }),
   );
 
@@ -427,10 +558,25 @@ export function createApp(deps: AppDeps): express.Express {
       const temporary = newToken().slice(0, 16);
       await store.setPassword(user.id, await hashPassword(temporary));
       await store.deleteOtherDevices(user.id, '00000000-0000-0000-0000-000000000000');
+      await store.deleteWebSessions(user.id);
       log('info', `Admin : mot de passe réinitialisé pour ${user.email}`);
       return { email: user.email, temporaryPassword: temporary };
     }),
   );
+
+  // ------------------------------------------------------------ web space (static)
+
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/v1/') || req.path.startsWith('/admin/')) return next();
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
+        "connect-src 'self' https://api.github.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    );
+    res.setHeader('X-Frame-Options', 'DENY');
+    next();
+  });
+  app.use(express.static(PUBLIC_DIR, { index: 'index.html', maxAge: '10m' }));
 
   // ------------------------------------------------------------ errors
 

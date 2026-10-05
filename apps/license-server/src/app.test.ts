@@ -368,6 +368,63 @@ describe('license server', () => {
     expect(publicKeyPem(a)).toBe(publicKeyPem(b));
   });
 
+  it('serves the web space with a strict CSP', async () => {
+    const res = await fetch(`${base}/`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('TokTok Game Connector Live');
+    const csp = res.headers.get('content-security-policy') ?? '';
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).not.toContain('unsafe-inline');
+    expect((await fetch(`${base}/site.js`)).headers.get('content-type')).toContain('javascript');
+  });
+
+  it('runs browser sessions with an HttpOnly cookie and same-origin checks', async () => {
+    const origin = 'https://licenses.example';
+    const web = (method: string, path: string, body?: unknown, cookie = '', withOrigin = true) =>
+      fetch(base + path, {
+        method,
+        headers: {
+          'content-type': 'application/json',
+          ...(withOrigin ? { origin } : {}),
+          ...(cookie ? { cookie } : {}),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    // Cross-site / missing Origin is refused.
+    expect(
+      (await web('POST', '/v1/web/register', { email: 'web@example.com', password: 'motdepasse' }, '', false))
+        .status,
+    ).toBe(403);
+    const reg = await web('POST', '/v1/web/register', { email: 'web@example.com', password: 'motdepasse' });
+    expect(reg.status).toBe(201);
+    const setCookie = reg.headers.get('set-cookie') ?? '';
+    expect(setCookie).toMatch(
+      /^tt_session=[\w-]+; HttpOnly; Path=\/; SameSite=Strict; Max-Age=604800; Secure$/,
+    );
+    const cookie = setCookie.split(';')[0]!;
+    const me = await web('GET', '/v1/web/me', undefined, cookie);
+    expect(me.headers.get('cache-control')).toBe('no-store');
+    expect(await me.json()).toMatchObject({ email: 'web@example.com', plan: 'free', devices: [] });
+    // A web session does not take a device slot; the app device appears in the list.
+    await call('POST', '/v1/auth/login', { email: 'web@example.com', password: 'motdepasse', ...device(7) });
+    const withDevice = (await (await web('GET', '/v1/web/me', undefined, cookie)).json()) as Json;
+    expect(withDevice.devices).toHaveLength(1);
+    const removed = (await (
+      await web('DELETE', `/v1/web/devices/${withDevice.devices[0].id}`, undefined, cookie)
+    ).json()) as Json;
+    expect(removed.devices).toHaveLength(0);
+    expect(
+      (await (await web('POST', '/v1/web/checkout', { interval: 'monthly' }, cookie)).json()).url,
+    ).toContain('checkout.stripe.com');
+    expect((await web('POST', '/v1/web/login', { email: 'web@example.com', password: 'faux' })).status).toBe(
+      401,
+    );
+    expect((await web('POST', '/v1/web/logout', undefined, cookie)).status).toBe(200);
+    expect((await web('GET', '/v1/web/me', undefined, cookie)).status).toBe(401);
+    const login = await web('POST', '/v1/web/login', { email: 'web@example.com', password: 'motdepasse' });
+    expect(login.status).toBe(200);
+  });
+
   it('answers health checks and unknown routes', async () => {
     expect((await call('GET', '/health')).body).toEqual({ ok: true, billing: true });
     expect((await call('GET', '/nope')).status).toBe(404);
