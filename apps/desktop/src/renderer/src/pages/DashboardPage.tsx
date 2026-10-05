@@ -8,6 +8,8 @@ import { Button, Card, Empty, Field, Input, Toggle } from '../components/ui';
 import { api } from '../lib/api';
 import { useAction } from '../lib/hooks';
 import { useStore } from '../lib/store';
+import { ProBadge } from '../components/ProBadge';
+import { useEntitlements } from '../lib/store';
 
 const fmt = new Intl.NumberFormat();
 
@@ -56,6 +58,8 @@ function PlatformConnection({ platform, now }: { platform: LivePlatform; now: nu
   const [connect, connecting] = useAction((c: string) => api.connection.connect(platform, c));
   const [disconnect] = useAction(() => api.connection.disconnect(platform));
   const active = connection.status !== 'idle' && connection.status !== 'error';
+  const ent = useEntitlements();
+  const locked = platform === 'kick' && !ent.kick;
 
   return (
     <div>
@@ -66,12 +70,19 @@ function PlatformConnection({ platform, now }: { platform: LivePlatform; now: nu
           if (!active) void connect(channel);
         }}
       >
-        <Field label={`${PLATFORM_ICON[platform]} ${t(`dashboard.platform.${platform}`)}`} className="flex-1">
+        <Field
+          label={
+            <span className="flex items-center gap-2">
+              {PLATFORM_ICON[platform]} {t(`dashboard.platform.${platform}`)} {locked && <ProBadge />}
+            </span>
+          }
+          className="flex-1"
+        >
           <Input
             value={channel}
             onChange={(e) => setChannel(e.target.value)}
             placeholder={t(`dashboard.placeholder.${platform}`)}
-            disabled={active}
+            disabled={active || locked}
           />
         </Field>
         <div className="pb-2">
@@ -82,7 +93,7 @@ function PlatformConnection({ platform, now }: { platform: LivePlatform; now: nu
             {t('dashboard.disconnect')}
           </Button>
         ) : (
-          <Button type="submit" variant="primary" disabled={connecting || !channel.trim()}>
+          <Button type="submit" variant="primary" disabled={connecting || locked || !channel.trim()}>
             {t('dashboard.connect')}
           </Button>
         )}

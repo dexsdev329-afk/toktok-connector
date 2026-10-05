@@ -12,9 +12,12 @@ import { z } from 'zod';
 import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
 import type { AppCore } from './app-core';
 import type { Updater } from './updater';
+import type { AccountService } from './account';
 
 const id = z.string().min(1).max(100);
 const platformSchema = z.enum(['tiktok', 'kick']);
+const emailSchema = z.string().trim().max(254).email();
+const passwordSchema = z.string().min(8).max(200);
 const simUser = z
   .object({
     username: z.string().max(24).optional(),
@@ -93,7 +96,12 @@ type Handlers = { [N in keyof DesktopApi]: { [M in keyof DesktopApi[N]]: (...arg
  * Registers the single "api" invoke channel. Arguments are validated with zod
  * before reaching the core; only the main window may call it.
  */
-export function registerIpc(core: AppCore, updater: Updater, getWindow: () => BrowserWindow | null): void {
+export function registerIpc(
+  core: AppCore,
+  updater: Updater,
+  account: AccountService,
+  getWindow: () => BrowserWindow | null,
+): void {
   const handlers = {
     app: {
       info: () => ({
@@ -258,6 +266,37 @@ export function registerIpc(core: AppCore, updater: Updater, getWindow: () => Br
         if (!o || !core.server.port) throw new Error('Overlay indisponible');
         await shell.openExternal(core.server.overlayUrl(o));
       },
+    },
+    account: {
+      get: () => account.state(),
+      register: (email: unknown, password: unknown) =>
+        account.register(emailSchema.parse(email), passwordSchema.parse(password)),
+      login: (email: unknown, password: unknown, replace: unknown) =>
+        account.login(
+          emailSchema.parse(email),
+          z.string().min(1).max(200).parse(password),
+          z.string().uuid().optional().parse(replace),
+        ),
+      logout: () => account.logout(),
+      refresh: async () => {
+        await account.refresh();
+        return account.state();
+      },
+      upgrade: async (interval: unknown) => {
+        const url = await account.checkoutUrl(z.enum(['monthly', 'yearly']).parse(interval));
+        await shell.openExternal(url);
+        account.watchUpgrade();
+      },
+      manageSubscription: async () => {
+        await shell.openExternal(await account.portalUrl());
+      },
+      removeDevice: async (did: unknown) => {
+        await account.removeDevice(z.string().uuid().parse(did));
+        return account.state();
+      },
+      changePassword: (oldPassword: unknown, newPassword: unknown) =>
+        account.changePassword(z.string().max(200).parse(oldPassword), passwordSchema.parse(newPassword)),
+      deleteAccount: (password: unknown) => account.deleteAccount(z.string().min(1).max(200).parse(password)),
     },
     updates: {
       get: () => updater.get(),

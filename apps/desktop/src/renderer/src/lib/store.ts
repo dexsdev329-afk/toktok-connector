@@ -1,10 +1,24 @@
-import type { GiftInfo, JournalEntry } from '@toktok/shared';
+import { entitlementsFor, type Entitlements, type GiftInfo, type JournalEntry } from '@toktok/shared';
 import { create } from 'zustand';
-import type { AppSettings, Connections, SessionInfo } from '../../../shared/api';
+import type { AccountState, AppSettings, Connections, SessionInfo } from '../../../shared/api';
 import i18n from '../i18n';
 import { api, onPush } from './api';
 
+export type PageKey =
+  | 'dashboard'
+  | 'actions'
+  | 'integrations'
+  | 'overlays'
+  | 'audio'
+  | 'games'
+  | 'journal'
+  | 'account'
+  | 'settings';
+
 interface LiveState {
+  page: PageKey;
+  setPage(p: PageKey): void;
+  account: AccountState | null;
   connection: Connections;
   session: SessionInfo;
   journal: JournalEntry[];
@@ -21,6 +35,11 @@ interface LiveState {
 const MAX_JOURNAL = 1000;
 
 export const useStore = create<LiveState>((set) => ({
+  page: 'dashboard',
+  setPage(page) {
+    set({ page });
+  },
+  account: null,
   connection: { tiktok: { status: 'idle', channel: null }, kick: { status: 'idle', channel: null } },
   session: { sessionId: null, channel: null, likes: 0, viewers: 0, diamonds: 0, followers: 0 },
   journal: [],
@@ -45,13 +64,15 @@ export const useStore = create<LiveState>((set) => ({
 
 /** Loads initial state and subscribes to push channels. Call once at startup. */
 export async function initStore(): Promise<void> {
-  const [connection, session, settings, journal] = await Promise.all([
+  const [connection, session, settings, journal, account] = await Promise.all([
     api.connection.get(),
     api.session.get(),
     api.settings.get(),
     api.journal.recent(),
+    api.account.get(),
   ]);
-  useStore.setState({ connection, session, journal });
+  useStore.setState({ connection, session, journal, account });
+  onPush('account', (a) => useStore.setState({ account: a }));
   useStore.getState().setSettings(settings);
   await useStore.getState().reloadGifts();
 
@@ -76,4 +97,9 @@ export async function initStore(): Promise<void> {
       }
     }
   });
+}
+
+/** Features of the current plan (the main process enforces them too). */
+export function useEntitlements(): Entitlements {
+  return entitlementsFor(useStore((s) => s.account?.plan ?? 'free'));
 }

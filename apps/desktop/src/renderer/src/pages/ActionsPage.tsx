@@ -7,6 +7,8 @@ import { api } from '../lib/api';
 import { useAction, useLoad } from '../lib/hooks';
 import { useStore } from '../lib/store';
 import { toast } from '../lib/toast';
+import { ProBadge } from '../components/ProBadge';
+import { useEntitlements } from '../lib/store';
 
 export function ActionsPage() {
   const { t } = useTranslation();
@@ -220,6 +222,7 @@ function ActionList({ profile }: { profile: Profile }) {
   const gifts = useStore((s) => s.gifts);
   const [actions, reload] = useLoad(() => api.actions.list(profile.id), [profile.id]);
   const [editing, setEditing] = useState<Action | 'new' | null>(null);
+  const ent = useEntitlements();
   const [toggle] = useAction(async (a: Action) => {
     await api.actions.save({ ...a, enabled: !a.enabled });
     reload();
@@ -240,12 +243,20 @@ function ActionList({ profile }: { profile: Profile }) {
         </Button>
       }
     >
+      {actions && actions.length > ent.maxActions && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-brand-500/10 px-3 py-2 text-sm text-brand-200">
+          <ProBadge /> {t('account.actionsLimit', { n: ent.maxActions })}
+        </div>
+      )}
       {!actions?.length ? (
         <Empty>{t('actions.empty')}</Empty>
       ) : (
         <div className="divide-y divide-ink-800">
-          {actions.map((a) => (
-            <div key={a.id} className="flex items-center gap-3 py-2.5">
+          {actions.map((a, index) => (
+            <div
+              key={a.id}
+              className={`flex items-center gap-3 py-2.5 ${index >= ent.maxActions ? 'opacity-50' : ''}`}
+            >
               <Toggle checked={a.enabled} onChange={() => void toggle(a)} />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{a.name}</div>

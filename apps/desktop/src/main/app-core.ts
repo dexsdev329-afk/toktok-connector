@@ -22,7 +22,6 @@ import {
   generateToken,
   openDatabase,
   simulatedUser,
-  unlockedEntitlements,
   type Db,
   type IntegrationRecord,
   type Repositories,
@@ -61,6 +60,11 @@ import {
   OverlayThemeDefSchema,
   parseOverlayOptions,
   renderTemplate,
+  unlockedEntitlements,
+  integrationAllowed,
+  overlayAllowed,
+  type Entitlements,
+  type EntitlementsProvider,
 } from '@toktok/shared';
 import { MediaBridge, browserEngine, elevenLabsEngine, listSapiVoices, sapiEngine } from './media';
 import type {
@@ -102,6 +106,8 @@ export interface AppCoreOptions {
   cipher: SecretCipher;
   input: InputDriver | undefined;
   gamepad?: GamepadDriver | undefined;
+  /** Plan features (account license). Defaults to everything unlocked. */
+  entitlements?: EntitlementsProvider;
   log: (level: 'info' | 'warn' | 'error', message: string) => void;
   push: {
     connection(platform: LivePlatform, info: ConnectionInfo): void;
@@ -134,7 +140,7 @@ export class AppCore {
   readonly kickCatalog: GiftCatalog;
   readonly server: LocalServer;
   readonly feeder: OverlayFeeder;
-  readonly entitlements = unlockedEntitlements;
+  readonly entitlements: EntitlementsProvider;
   readonly media: MediaBridge;
   readonly homeGames: HomeGames;
   readonly tts: TtsService;
@@ -145,6 +151,7 @@ export class AppCore {
   private pruneTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly opts: AppCoreOptions) {
+    this.entitlements = opts.entitlements ?? unlockedEntitlements;
     this.db = openDatabase(path.join(opts.dataDir, 'toktok.sqlite'));
     this.repos = createRepositories(this.db, opts.cipher);
     this.seedDefaults();
@@ -204,7 +211,11 @@ export class AppCore {
     this.server = new LocalServer({
       port: this.settings().serverPort,
       overlaysDir: opts.overlaysDir,
-      getOverlay: (id) => this.repos.overlays.get(id),
+      // Pro overlays are not served on the free plan (the page stays blank).
+      getOverlay: (id) => {
+        const o = this.repos.overlays.get(id);
+        return o && overlayAllowed(this.ent(), o.kind) ? o : null;
+      },
       initialMessages: (id) => this.feeder.initialMessages(id),
       apiToken: () => this.settings().apiToken,
       triggerAction: (id) => this.triggerActionById(id),
@@ -250,7 +261,7 @@ export class AppCore {
       });
     }
     for (const rec of this.repos.integrations.list()) {
-      await this.integrations.upsert(this.withSecrets(rec)).catch((err: unknown) => {
+      await this.startIntegration(rec).catch((err: unknown) => {
         this.system('warn', `Intégration « ${rec.name} » : ${String(err)}`);
       });
     }
@@ -380,6 +391,7 @@ export class AppCore {
 
   async connectPlatform(platform: LivePlatform, channel: string): Promise<void> {
     if (platform === 'kick') {
+      this.requirePro(this.ent().kick);
       this.repos.settings.set(SETTINGS.kickChannel, channel.trim());
       await this.kick.connect(channel);
       return;
@@ -528,7 +540,52 @@ export class AppCore {
 
   reloadActions(): void {
     const active = this.repos.profiles.getActive();
-    this.engine.setActions(active ? this.repos.actions.listByProfile(active.id) : []);
+    const actions = active ? this.repos.actions.listByProfile(active.id) : [];
+    // Free plan: only the first actions of the profile run (the others stay saved).
+    this.engine.setActions(actions.slice(0, this.ent().maxActions));
+  }
+
+  // ---------------------------------------------------------------- plan
+
+  ent(): Entitlements {
+    return this.entitlements.current();
+  }
+
+  private requirePro(allowed: boolean): void {
+    if (!allowed) throw new Error('Fonction réservée à TokTok Pro (page Compte)');
+  }
+
+  private async startIntegration(rec: IntegrationRecord): Promise<void> {
+    if (!integrationAllowed(this.ent(), rec.kind)) {
+      await this.integrations.remove(rec.id);
+      return;
+    }
+    await this.integrations.upsert(this.withSecrets(rec));
+  }
+
+  /** Applies a plan change (login, upgrade, expiry) to everything already running. */
+  async applyEntitlements(): Promise<void> {
+    const e = this.ent();
+    this.reloadActions();
+    for (const rec of this.repos.integrations.list()) {
+      const allowed = integrationAllowed(e, rec.kind);
+      const running = this.integrations.getInstance(rec.id) !== null;
+      if (!allowed && running) await this.integrations.remove(rec.id);
+      if (allowed && rec.enabled && !running) {
+        await this.startIntegration(rec).catch((err: unknown) => {
+          this.system('warn', `Intégration « ${rec.name} » : ${String(err)}`);
+        });
+      }
+    }
+    for (const o of this.repos.overlays.list()) {
+      if (!overlayAllowed(e, o.kind)) this.server.disconnectOverlay(o.id);
+    }
+    if (!e.kick && this.kick.getStatus().status !== 'idle') {
+      await this.kick.disconnect();
+      this.system('warn', 'Kick déconnecté : fonction réservée à TokTok Pro');
+    }
+    this.feeder.refreshAll();
+    this.opts.push.integrations();
   }
 
   canAddAction(): boolean {
@@ -616,6 +673,7 @@ export class AppCore {
     const secretsSet = (def?.configFields ?? [])
       .filter((f) => f.secret && this.repos.secrets.has(integrationSecretKey(rec.id, f.key)))
       .map((f) => f.key);
+    const locked = !integrationAllowed(this.ent(), rec.kind);
     return {
       id: rec.id,
       kind: rec.kind,
@@ -623,7 +681,10 @@ export class AppCore {
       enabled: rec.enabled,
       config: rec.config,
       secretsSet,
-      status: this.integrations.status(rec.id),
+      locked,
+      status: locked
+        ? { state: 'disconnected', detail: 'TokTok Pro requis' }
+        : this.integrations.status(rec.id),
       effects: this.integrations.instanceEffects(rec.id) ?? def?.effects ?? [],
     };
   }
@@ -631,6 +692,7 @@ export class AppCore {
   async saveIntegration(input: IntegrationSaveInput): Promise<IntegrationDto> {
     const def = this.integrations.getDefinition(input.kind);
     if (!def) throw new Error(`Type d’intégration inconnu : ${input.kind}`);
+    if (!input.id) this.requirePro(integrationAllowed(this.ent(), input.kind));
     const secretFields = new Set(def.configFields.filter((f) => f.secret).map((f) => f.key));
     const plain: Record<string, unknown> = {};
     for (const f of def.configFields) {
@@ -673,7 +735,7 @@ export class AppCore {
       if (typeof v === 'string') this.repos.secrets.set(integrationSecretKey(id, key), v);
       if (v === null) this.repos.secrets.delete(integrationSecretKey(id, key));
     }
-    await this.integrations.upsert(this.withSecrets(rec));
+    await this.startIntegration(rec);
     this.opts.push.integrations();
     return this.integrationDto(rec);
   }
@@ -717,11 +779,14 @@ export class AppCore {
       ...cfg,
       url: this.server.port ? this.server.overlayUrl({ id: o.id, token }) : '',
       connected: this.server.connectedCount(o.id),
+      locked: !overlayAllowed(this.ent(), o.kind),
     };
   }
 
   saveOverlay(input: OverlaySaveInput): OverlayDto {
+    if (!input.id) this.requirePro(overlayAllowed(this.ent(), input.kind));
     const options = parseOverlayOptions(input.kind, input.options);
+    if (!this.ent().themeEditor) input = { ...input, style: basicStyle(input.style) };
     const saved = this.repos.overlays.save({ ...input, options }, () => generateToken());
     this.feeder.configChanged(saved);
     return this.overlayDto(saved);
@@ -734,6 +799,7 @@ export class AppCore {
   }
 
   saveTheme(name: string, style: OverlayStyle): OverlayThemeDef {
+    this.requirePro(this.ent().themeEditor);
     const list = this.listThemes();
     if (list.length >= 50) throw new Error('50 thèmes maximum');
     const theme: OverlayThemeDef = { id: makeId('thm'), name, style };
@@ -771,13 +837,16 @@ export class AppCore {
   // ---------------------------------------------------------------- sounds & TTS
 
   ttsSettings(): TtsSettings {
-    return TtsSettingsSchema.parse(this.repos.settings.get('tts', {}));
+    const s = TtsSettingsSchema.parse(this.repos.settings.get('tts', {}));
+    // ElevenLabs is a Pro voice: fall back to the free Windows voices.
+    return s.engine === 'elevenlabs' && !this.ent().premiumTts ? { ...s, engine: 'sapi' } : s;
   }
 
   updateTtsSettings(
     patch: Partial<TtsSettings>,
     elevenlabsKey?: string | null,
   ): TtsSettings & { hasElevenlabsKey: boolean } {
+    if (patch.engine === 'elevenlabs') this.requirePro(this.ent().premiumTts);
     const next = TtsSettingsSchema.parse({ ...this.ttsSettings(), ...patch });
     this.repos.settings.set('tts', next);
     if (elevenlabsKey === null) this.repos.secrets.delete(SECRET_ELEVENLABS_KEY);
@@ -856,4 +925,18 @@ export class AppCore {
     });
     s.set(SETTINGS.initialized, true);
   }
+}
+
+/** Drops the theme editor fields (Pro) from a style. */
+function basicStyle(style: OverlayStyle): OverlayStyle {
+  const {
+    cardColor: _a,
+    cardOpacity: _b,
+    radiusPx: _c,
+    borderWidthPx: _d,
+    shadow: _e,
+    textOutline: _f,
+    ...rest
+  } = style;
+  return rest;
 }
