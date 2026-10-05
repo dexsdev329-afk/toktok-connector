@@ -133,3 +133,23 @@ describe('Minecraft command builder', () => {
     ).toEqual(['say hi "Steve Gamer"', 'kill "Steve Gamer"']);
   });
 });
+
+describe('Minecraft starter pack', () => {
+  it('only contains valid actions whose effects build commands for both editions', async () => {
+    const { ActionSchema } = await import('@toktok/shared');
+    const { minecraftStarterPack } = await import('./starter-pack');
+    const pack = minecraftStarterPack('mc');
+    expect(pack.actions.length).toBeGreaterThan(5);
+    for (const a of pack.actions) {
+      const action = ActionSchema.parse({ ...a, id: 'x', profileId: 'p' });
+      for (const e of action.effects) {
+        for (const edition of ['java', 'java-legacy', 'bedrock'] as const) {
+          expect(
+            buildMinecraftCommands(e, ctx, { edition, player: 'Enzo' })?.length,
+            `${a.name} ${e.effectId}`,
+          ).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+});

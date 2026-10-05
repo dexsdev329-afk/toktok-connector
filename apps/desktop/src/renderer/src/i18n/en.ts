@@ -116,6 +116,13 @@ const en: Dict = {
     denyList: 'Deny list (comma-separated usernames)',
     noIntegration: 'Add an integration first (Integrations tab).',
     variables: 'Variables: {username} {displayName} {giftName} {count} {diamonds} {message} {total}',
+    minecraftPack: 'Minecraft pack',
+    minecraftPackIntro:
+      'Creates a ready-to-use profile: zombies, creepers, TNT rain and bosses depending on gift value, titles for follows, effects with likes, !heal and !nuit commands. Everything can be edited afterwards.',
+    minecraftPackNoIntegration: 'Add a Minecraft integration first (Java RCON or Bedrock).',
+    minecraftPackCreated: 'Minecraft pack created (activate the profile to use it)',
+    testEffect: 'Test this effect now',
+    effectTested: 'Effect sent',
     limit: 'Action limit reached for this version.',
   },
   triggers: {
@@ -130,12 +137,14 @@ const en: Dict = {
     giftId: 'Gift',
     minCount: 'Minimum quantity',
     min: 'Minimum diamonds',
+    max: 'Maximum diamonds (empty = unlimited)',
     every: 'Every … likes',
     commandName: 'Command (without !)',
     keywordText: 'Keyword',
     summary: {
       gift: '{{name}} ×{{min}}',
       diamonds: '≥ {{min}} 💎',
+      diamondsRange: '{{min}}–{{max}} 💎',
       likes: 'Every {{every}} likes',
       command: '!{{name}}',
       keyword: '“{{text}}”',

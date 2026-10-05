@@ -54,7 +54,7 @@ export class SecretsRepo {
 
   set(key: string, value: string): void {
     if (!this.cipher.isAvailable()) {
-      throw new Error('Secure storage is not available on this system');
+      throw new Error('Stockage sécurisé indisponible sur ce système (trousseau du système inaccessible)');
     }
     this.db
       .prepare(

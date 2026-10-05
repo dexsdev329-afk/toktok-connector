@@ -114,6 +114,13 @@ const fr = {
     denyList: 'Liste noire (pseudos séparés par des virgules)',
     noIntegration: 'Ajoute d’abord une intégration (onglet Intégrations).',
     variables: 'Variables : {username} {displayName} {giftName} {count} {diamonds} {message} {total}',
+    minecraftPack: 'Pack Minecraft',
+    minecraftPackIntro:
+      'Crée un nouveau profil prêt à l’emploi : zombies, creepers, pluie de TNT et boss selon la valeur des cadeaux, titres pour les follows, effets avec les likes, commandes !heal et !nuit. Tout est modifiable ensuite.',
+    minecraftPackNoIntegration: 'Ajoute d’abord une intégration Minecraft (Java RCON ou Bedrock).',
+    minecraftPackCreated: 'Pack Minecraft créé (active le profil pour l’utiliser)',
+    testEffect: 'Tester cet effet maintenant',
+    effectTested: 'Effet envoyé',
     limit: 'Limite d’actions atteinte pour cette version.',
   },
   triggers: {
@@ -128,12 +135,14 @@ const fr = {
     giftId: 'Cadeau',
     minCount: 'Quantité minimum',
     min: 'Diamants minimum',
+    max: 'Diamants maximum (vide = illimité)',
     every: 'Tous les … likes',
     commandName: 'Commande (sans !)',
     keywordText: 'Mot-clé',
     summary: {
       gift: '{{name}} ×{{min}}',
       diamonds: '≥ {{min}} 💎',
+      diamondsRange: '{{min}}–{{max}} 💎',
       likes: 'Tous les {{every}} likes',
       command: '!{{name}}',
       keyword: '« {{text}} »',

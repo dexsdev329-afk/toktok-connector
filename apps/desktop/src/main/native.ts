@@ -1,7 +1,18 @@
 import { createRequire } from 'node:module';
 import type { InputDriver, MouseButton } from '@toktok/integrations';
-import { safeStorage } from 'electron';
+import { app, safeStorage } from 'electron';
 import type { SecretCipher } from '@toktok/core';
+
+/**
+ * Development only (Linux without a keyring, CI, headless tests): allow Electron's
+ * obfuscation-only backend when explicitly requested. Never active in packaged builds
+ * nor on Windows, where DPAPI is always available.
+ */
+export function configureSafeStorageForDev(): void {
+  if (process.platform === 'linux' && !app.isPackaged && process.env.TOKTOK_DEV_PLAINTEXT_SECRETS === '1') {
+    safeStorage.setUsePlainTextEncryption(true);
+  }
+}
 
 /** Secrets are encrypted with the OS keychain (DPAPI on Windows) via Electron safeStorage. */
 export const safeStorageCipher: SecretCipher = {

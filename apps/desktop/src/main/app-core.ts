@@ -21,13 +21,15 @@ import {
   type SecretCipher,
 } from '@toktok/core';
 import { createTikTokClient } from '@toktok/core/tiktok-client';
-import { IntegrationManager, type InputDriver } from '@toktok/integrations';
+import { IntegrationManager, minecraftStarterPack, type InputDriver } from '@toktok/integrations';
 import {
   OverlayStyleSchema,
   contextFromEvent,
   makeId,
   type Action,
+  type Effect,
   type GiftInfo,
+  type Profile,
   type JournalEntry,
   type LiveEvent,
   type OverlayConfig,
@@ -197,10 +199,11 @@ export class AppCore {
     });
 
     this.bus.on('live', (event) => {
+      // Log the event before the actions it triggers, so the journal reads in order.
+      this.bus.emit('journal', { kind: 'event', ts: event.timestamp, event });
       if (this.tracker.handle(event)) this.engine.resetSession();
       this.engine.handleEvent(event);
       this.feeder.handle(event);
-      this.bus.emit('journal', { kind: 'event', ts: event.timestamp, event });
       if (!NOT_PERSISTED.has(event.type)) {
         this.repos.eventLog.append(this.tracker.get().sessionId, event.type, event);
       }
@@ -406,7 +409,33 @@ export class AppCore {
   }
 
   testAction(action: Action): void {
-    const event: LiveEvent = {
+    this.engine.triggerManually(action, contextFromEvent(this.sampleGiftEvent()));
+  }
+
+  /** Runs one effect immediately with a simulated viewer (editor test button). */
+  async testEffect(effect: Effect): Promise<void> {
+    const ctx = contextFromEvent(this.sampleGiftEvent());
+    await this.integrations.run(effect, ctx, AbortSignal.timeout(30_000));
+  }
+
+  createMinecraftPack(integrationId: string): Profile {
+    const rec = this.repos.integrations.get(integrationId);
+    if (!rec || !['minecraft-rcon', 'minecraft-bedrock'].includes(rec.kind)) {
+      throw new Error('Choisis une intégration Minecraft');
+    }
+    const pack = minecraftStarterPack(integrationId);
+    const tx = this.db.transaction(() => {
+      const profile = this.repos.profiles.create({ name: pack.name, game: pack.game });
+      for (const a of pack.actions) this.repos.actions.save({ ...a, profileId: profile.id });
+      return profile;
+    });
+    const profile = tx();
+    this.reloadActions();
+    return profile;
+  }
+
+  private sampleGiftEvent(): LiveEvent {
+    return {
       id: makeId('test'),
       platform: 'simulator',
       timestamp: Date.now(),
@@ -416,7 +445,6 @@ export class AppCore {
       count: 1,
       streakFinal: true,
     };
-    this.engine.triggerManually(action, contextFromEvent(event));
   }
 
   private triggerActionById(id: string): boolean {
@@ -480,6 +508,13 @@ export class AppCore {
       if (v === null) delete merged.config[key];
     }
     def.configSchema.parse(merged.config);
+    // Fail before writing anything if a secret cannot be encrypted.
+    if (
+      [...secretFields].some((k) => typeof input.config[k] === 'string') &&
+      !this.opts.cipher.isAvailable()
+    ) {
+      throw new Error('Stockage sécurisé indisponible sur ce système (trousseau du système inaccessible)');
+    }
 
     const rec = this.repos.integrations.save({
       id,

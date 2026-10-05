@@ -106,6 +106,16 @@ describe('matching', () => {
     expect(h.calls).toHaveLength(1);
   });
 
+  it('supports diamond tiers with an upper bound', async () => {
+    const h = harness();
+    h.engine.setActions([action({ id: 'tier', trigger: { kind: 'diamonds', min: 10, max: 98 } })]);
+    h.engine.handleEvent(gift('1', 5, 1)); // 5: below
+    h.engine.handleEvent(gift('1', 10, 1)); // 10: in
+    h.engine.handleEvent(gift('1', 1, 99)); // 99: above
+    await vi.runAllTimersAsync();
+    expect(h.calls).toHaveLength(1);
+  });
+
   it('fires once per like threshold crossed', async () => {
     const h = harness();
     h.engine.setActions([action({ trigger: { kind: 'likes', every: 100 }, quantityMode: 'multiply' })]);

@@ -4,7 +4,7 @@ import { app, BrowserWindow, session, shell } from 'electron';
 import type { PushEvents } from '../shared/api';
 import { AppCore } from './app-core';
 import { registerIpc } from './ipc';
-import { loadInputDriver, safeStorageCipher } from './native';
+import { configureSafeStorageForDev, loadInputDriver, safeStorageCipher } from './native';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | null = null;
@@ -80,6 +80,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     // Deny every permission request (camera, notifications...) from web content.
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+    configureSafeStorageForDev();
 
     core = new AppCore({
       dataDir: app.getPath('userData'),

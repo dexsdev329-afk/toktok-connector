@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { exportProfile, importProfile } from '@toktok/core';
-import { ActionSchema, OverlayConfigSchema, type ActionInput } from '@toktok/shared';
+import { ActionSchema, EffectSchema, OverlayConfigSchema, type ActionInput } from '@toktok/shared';
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { z } from 'zod';
 import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
@@ -137,6 +137,7 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
         core.reloadActions();
         return profile;
       },
+      createMinecraftPack: (iid: unknown) => core.createMinecraftPack(id.parse(iid)),
     },
     actions: {
       list: (pid: unknown) => core.repos.actions.listByProfile(id.parse(pid)),
@@ -157,6 +158,7 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
         if (!action) throw new Error('Action introuvable');
         core.testAction(action);
       },
+      testEffect: (effect: unknown) => core.testEffect(EffectSchema.parse(effect)),
     },
     integrations: {
       definitions: (): IntegrationDefinitionDto[] =>

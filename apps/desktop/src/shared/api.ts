@@ -2,7 +2,15 @@
  * Contract between the renderer and the main process (IPC).
  * Every method is validated again in the main process: the renderer is never trusted.
  */
-import type { Action, ActionInput, GiftInfo, JournalEntry, OverlayConfig, Profile } from '@toktok/shared';
+import type {
+  Action,
+  ActionInput,
+  Effect,
+  GiftInfo,
+  JournalEntry,
+  OverlayConfig,
+  Profile,
+} from '@toktok/shared';
 
 export type ConnectionStatus =
   'idle' | 'connecting' | 'connected' | 'reconnecting' | 'waiting-live' | 'error';
@@ -153,12 +161,16 @@ export interface DesktopApi {
     activate(id: string): Promise<void>;
     exportToFile(id: string): Promise<boolean>;
     importFromFile(): Promise<Profile | null>;
+    /** Creates a ready-to-use Minecraft profile bound to a Minecraft integration. */
+    createMinecraftPack(integrationId: string): Promise<Profile>;
   };
   actions: {
     list(profileId: string): Promise<Action[]>;
     save(action: Omit<ActionInput, 'id'> & { id?: string }): Promise<Action>;
     remove(id: string): Promise<void>;
     test(id: string): Promise<void>;
+    /** Runs a single effect right now (editor "test" button). */
+    testEffect(effect: Effect): Promise<void>;
   };
   integrations: {
     definitions(): Promise<IntegrationDefinitionDto[]>;

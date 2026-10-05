@@ -13,12 +13,13 @@ export function ActionsPage() {
   const [profiles, reloadProfiles] = useLoad(() => api.profiles.list());
   const [selectedId, setSelectedId] = useState<string>('');
   const [profileModal, setProfileModal] = useState<Profile | 'new' | null>(null);
+  const [packModal, setPackModal] = useState(false);
 
+  // Default to the active profile. A freshly created/imported profile may not be in the
+  // (asynchronously reloaded) list yet, so only fall back when nothing is selected.
   useEffect(() => {
-    if (!profiles?.length) return;
-    if (!profiles.some((p) => p.id === selectedId)) {
-      setSelectedId((profiles.find((p) => p.isActive) ?? profiles[0]!).id);
-    }
+    if (!profiles?.length || selectedId) return;
+    setSelectedId((profiles.find((p) => p.isActive) ?? profiles[0]!).id);
   }, [profiles, selectedId]);
 
   const selected = profiles?.find((p) => p.id === selectedId);
@@ -29,6 +30,7 @@ export function ActionsPage() {
   const [remove] = useAction(async (p: Profile) => {
     if (!confirm(t('common.confirmDelete', { name: p.name }))) return;
     await api.profiles.remove(p.id);
+    setSelectedId('');
     reloadProfiles();
   });
   const [exportProfile] = useAction(async (id: string) => {
@@ -81,6 +83,9 @@ export function ActionsPage() {
           <Button variant="ghost" onClick={() => void importProfile()}>
             {t('actions.import')}
           </Button>
+          <Button variant="ghost" onClick={() => setPackModal(true)}>
+            🧱 {t('actions.minecraftPack')}
+          </Button>
           {selected && profiles && profiles.length > 1 && (
             <Button variant="ghost" onClick={() => void remove(selected)}>
               {t('common.delete')}
@@ -89,6 +94,16 @@ export function ActionsPage() {
         </div>
       </Card>
       {selected && <ActionList profile={selected} />}
+      {packModal && (
+        <MinecraftPackModal
+          onClose={() => setPackModal(false)}
+          onCreated={(p) => {
+            setPackModal(false);
+            reloadProfiles();
+            setSelectedId(p.id);
+          }}
+        />
+      )}
       {profileModal && (
         <ProfileModal
           profile={profileModal === 'new' ? null : profileModal}
@@ -101,6 +116,57 @@ export function ActionsPage() {
         />
       )}
     </div>
+  );
+}
+
+function MinecraftPackModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (p: Profile) => void;
+}) {
+  const { t } = useTranslation();
+  const [integrations] = useLoad(() => api.integrations.list());
+  const minecraft = (integrations ?? []).filter(
+    (i) => i.kind === 'minecraft-rcon' || i.kind === 'minecraft-bedrock',
+  );
+  const [choice, setChoice] = useState('');
+  const selected = choice || minecraft[0]?.id || '';
+  const [create, busy] = useAction(async () => {
+    const p = await api.profiles.createMinecraftPack(selected);
+    onCreated(p);
+  }, t('actions.minecraftPackCreated'));
+  return (
+    <Modal
+      title={`🧱 ${t('actions.minecraftPack')}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="primary" disabled={busy || !selected} onClick={() => void create()}>
+            {t('common.add')}
+          </Button>
+        </>
+      }
+    >
+      <p className="mb-3 text-sm text-slate-400">{t('actions.minecraftPackIntro')}</p>
+      {minecraft.length === 0 ? (
+        <p className="text-sm text-amber-300">{t('actions.minecraftPackNoIntegration')}</p>
+      ) : (
+        <Field label={t('actions.integration')}>
+          <Select value={selected} onChange={(e) => setChoice(e.target.value)}>
+            {minecraft.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+    </Modal>
   );
 }
 

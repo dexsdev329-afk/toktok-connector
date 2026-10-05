@@ -6,3 +6,4 @@ export * from './input/input-integration';
 export * from './minecraft-rcon/minecraft-rcon';
 export * from './minecraft/commands';
 export * from './minecraft-bedrock/minecraft-bedrock';
+export * from './minecraft/starter-pack';

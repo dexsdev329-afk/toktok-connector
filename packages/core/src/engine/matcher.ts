@@ -52,6 +52,7 @@ export function matchAction(action: Action, event: LiveEvent, state: MatchState)
     case 'diamonds': {
       if (event.type !== 'gift') return NO_MATCH;
       const total = event.gift.diamonds * event.count;
+      if (t.max !== undefined && total > t.max) return NO_MATCH;
       const units = Math.floor(total / t.min);
       if (units < 1) return NO_MATCH;
       // For a single gift type, express {count} in gift units when possible.

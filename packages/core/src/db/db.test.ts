@@ -41,7 +41,7 @@ describe('settings & secrets', () => {
 
   it('refuses to store secrets without secure storage', () => {
     const r = createRepositories(db, { ...fakeCipher, isAvailable: () => false });
-    expect(() => r.secrets.set('k', 'v')).toThrow(/Secure storage/);
+    expect(() => r.secrets.set('k', 'v')).toThrow(/Stockage sécurisé/);
   });
 });
 

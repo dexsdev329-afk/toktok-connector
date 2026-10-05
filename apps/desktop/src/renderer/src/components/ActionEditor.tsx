@@ -44,7 +44,9 @@ export function triggerSummary(t: TFunction, trigger: Trigger, gifts: GiftInfo[]
         min: trigger.minCount,
       });
     case 'diamonds':
-      return t('triggers.summary.diamonds', { min: trigger.min });
+      return trigger.max
+        ? t('triggers.summary.diamondsRange', { min: trigger.min, max: trigger.max })
+        : t('triggers.summary.diamonds', { min: trigger.min });
     case 'likes':
       return t('triggers.summary.likes', { every: trigger.every });
     case 'command':
@@ -270,14 +272,29 @@ function TriggerEditor({ trigger, onChange }: { trigger: Trigger; onChange: (t: 
         </>
       )}
       {trigger.kind === 'diamonds' && (
-        <Field label={t('triggers.min')} className="w-40">
-          <Input
-            type="number"
-            min={1}
-            value={trigger.min}
-            onChange={(e) => onChange({ ...trigger, min: Math.max(1, num(e.target.value, 1)) })}
-          />
-        </Field>
+        <>
+          <Field label={t('triggers.min')} className="w-40">
+            <Input
+              type="number"
+              min={1}
+              value={trigger.min}
+              onChange={(e) => onChange({ ...trigger, min: Math.max(1, num(e.target.value, 1)) })}
+            />
+          </Field>
+          <Field label={t('triggers.max')} className="w-40">
+            <Input
+              type="number"
+              min={1}
+              value={trigger.max ?? ''}
+              placeholder="∞"
+              onChange={(e) => {
+                const { max: _old, ...rest } = trigger;
+                const v = e.target.value === '' ? undefined : Math.max(1, num(e.target.value, 1));
+                onChange(v === undefined ? rest : { ...rest, max: v });
+              }}
+            />
+          </Field>
+        </>
       )}
       {trigger.kind === 'likes' && (
         <Field label={t('triggers.every')} className="w-40">
@@ -343,7 +360,7 @@ function EffectsEditor({
         return (
           <div key={i} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
             <div className="flex flex-wrap items-end gap-2">
-              <Field label={t('actions.integration')} className="w-52">
+              <Field label={t('actions.integration')} className="min-w-40 flex-1">
                 <Select
                   value={effect.integrationId}
                   onChange={(e) => {
@@ -359,7 +376,7 @@ function EffectsEditor({
                   ))}
                 </Select>
               </Field>
-              <Field label={t('actions.effect')} className="w-56">
+              <Field label={t('actions.effect')} className="min-w-40 flex-1">
                 <Select
                   value={effect.effectId}
                   onChange={(e) => {
@@ -375,7 +392,7 @@ function EffectsEditor({
                 </Select>
               </Field>
               {def && def.presets.length > 0 && (
-                <Field label={t('actions.preset')} className="w-60">
+                <Field label={t('actions.preset')} className="min-w-40 flex-1">
                   <Select
                     value=""
                     onChange={(e) => {
@@ -415,6 +432,7 @@ function EffectsEditor({
               >
                 ↓
               </Button>
+              <EffectTestButton effect={effect} />
               <Button size="sm" variant="ghost" onClick={() => onChange(effects.filter((_, j) => j !== i))}>
                 ✕
               </Button>
@@ -468,6 +486,16 @@ function EffectsEditor({
         <span className="text-xs text-slate-500">{t('actions.variables')}</span>
       </div>
     </div>
+  );
+}
+
+function EffectTestButton({ effect }: { effect: Effect }) {
+  const { t } = useTranslation();
+  const [run, busy] = useAction(() => api.actions.testEffect(effect), t('actions.effectTested'));
+  return (
+    <Button size="sm" onClick={() => void run()} disabled={busy} title={t('actions.testEffect')}>
+      ▶
+    </Button>
   );
 }
 

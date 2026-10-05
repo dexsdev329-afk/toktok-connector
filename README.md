@@ -72,7 +72,19 @@ En parallèle, chaque événement alimente les statistiques, les overlays et le 
 Dans le **Tableau de bord**, saisis ton pseudo TikTok puis clique sur **Se connecter**. Si tu n'es pas en
 live, l'app attend et se connecte automatiquement dès que le live démarre.
 
-### 2. Minecraft Java
+### 2. Minecraft
+
+**Le plus rapide** : ajoute une intégration Minecraft (Java ou Bedrock), puis dans l'onglet **Actions**
+clique sur **🧱 Pack Minecraft**. Ça crée un profil prêt à l'emploi : zombies nommés pour les petits cadeaux
+(1–9 💎), creeper (10–98 💎), pluie de TNT (99–499 💎), boss (500 💎 et plus), titres pour les follows, vitesse
+tous les 500 likes, commandes `!heal` et `!nuit` (`!nuit` réservée aux modos). Active le profil, c'est prêt.
+
+Effets disponibles (sans écrire une seule commande) : faire apparaître un mob (nommé avec le pseudo du viewer,
+optionnellement ×nombre de cadeaux), TNT et pluie de TNT, éclair, effet de potion, retirer les effets, donner
+un objet, titre à l'écran, message dans le chat, météo, heure, supprimer les mobs autour. Le bouton ▶ à côté
+d'un effet l'envoie tout de suite dans le jeu, pour tester.
+
+#### Minecraft Java (RCON)
 
 1. Dans `server.properties` :
    ```properties
@@ -80,13 +92,37 @@ live, l'app attend et se connecte automatiquement dès que le live démarre.
    rcon.port=25575
    rcon.password=un_mot_de_passe_solide
    ```
-2. Dans l'onglet **Intégrations**, ajoute **Minecraft Java (RCON)** : adresse, port, mot de passe et ton
-   pseudo Minecraft. Ce pseudo sera utilisé par `{player}`.
-3. Dans l'onglet **Actions**, crée une action (par exemple *Cadeau Rose → TNT*). Choisis l'effet
-   « Commande Minecraft » et prends un **préréglage**, ou écris tes propres commandes (une par ligne).
+2. Dans l'onglet **Intégrations**, ajoute **Minecraft Java (RCON)** : adresse, port, mot de passe, ton pseudo
+   Minecraft (utilisé par `{player}`) et la version (1.21.5+ ou 1.13–1.21.4 : le format des noms de mobs
+   a changé en 1.21.5).
+3. **Tester la connexion** affiche les joueurs connectés.
 
-Variables disponibles : `{player}` `{username}` `{displayName}` `{giftName}` `{count}` `{diamonds}`
-`{message}` `{total}`. Elles sont échappées automatiquement pour Minecraft (guillemets, codes `§`).
+#### Minecraft Bedrock (Windows 10/11, `/connect`)
+
+1. Dans le monde : **triche activée**. Dans *Paramètres → Général*, désactive **« Websockets chiffrés
+   obligatoires »** (le chiffrement n'est pas encore pris en charge).
+2. Dans l'onglet **Intégrations**, ajoute **Minecraft Bedrock** (port 19135 par défaut).
+3. Dans le chat du jeu, tape : `/connect localhost:19135`. Le message « TokTok Game Connector Live :
+   connecté » s'affiche au-dessus de la barre d'inventaire.
+
+Les commandes sont exécutées en tant que joueur qui a tapé `/connect`. Par défaut, la cible est donc `@s` (toi).
+
+#### Commandes libres
+
+L'effet « Commande Minecraft » accepte une commande par ligne avec des variables : `{player}` `{username}`
+`{displayName}` `{giftName}` `{count}` `{diamonds}` `{message}` `{total}`. Elles sont échappées
+automatiquement (guillemets, codes `§`). Les effets prêts à l'emploi, eux, n'acceptent que des mobs, effets
+et objets d'une liste connue, et nettoient les pseudos : un viewer ne peut pas injecter de commande avec son
+nom.
+
+#### Tester sans Minecraft
+
+```bash
+node scripts/fake-rcon-server.mjs 25575 test   # affiche chaque commande reçue
+```
+
+Configure ensuite l'intégration RCON sur `127.0.0.1:25575` avec le mot de passe `test`, puis utilise le
+simulateur du tableau de bord.
 
 ### 3. Clavier & souris
 

@@ -17,6 +17,9 @@ importers:
       eslint:
         specifier: ^10.12.0
         version: 10.12.0(jiti@2.7.0)
+      globals:
+        specifier: ^16.0.0
+        version: 16.5.0
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
@@ -1822,6 +1825,10 @@ packages:
   global-agent@3.0.0:
     resolution: {integrity: sha512-PT6XReJ+D07JvGoxQMkT6qji/jVNfX/h364XHZOWeRzy64sSFr+xJ5OX7LI3b4MPQzdL4H8Y8M0xzPpsVMwA8Q==}
     engines: {node: '>=10.0'}
+
+  globals@16.5.0:
+    resolution: {integrity: sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ==}
+    engines: {node: '>=18'}
 
   globalthis@1.0.4:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
@@ -4641,6 +4648,8 @@ snapshots:
       semver: 7.8.5
       serialize-error: 7.0.1
     optional: true
+
+  globals@16.5.0: {}
 
   globalthis@1.0.4:
     dependencies:

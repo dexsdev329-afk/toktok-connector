@@ -35,8 +35,13 @@
 App Electron, connecteur TikTok, simulateur, moteur d'actions, Minecraft RCON, simulation clavier, 3 overlays
 (alertes, top donateurs, objectif de likes), installeur NSIS, tests Vitest, CI.
 
+### Focus Minecraft ✅ (avancé de la phase 2)
+Effets structurés Java et Bedrock, intégration Bedrock `/connect`, pack Minecraft en un clic, test d'un
+effet depuis l'éditeur, faux serveur RCON pour les tests. Reste à faire : websockets chiffrés Bedrock
+(`enableencryption`, à valider sur un vrai client).
+
 ### Phase 2
-Minecraft Bedrock (`/connect`), manette virtuelle (ViGEmBus), bridge pour mods et exemple BepInEx,
+Manette virtuelle (ViGEmBus), bridge pour mods et exemple BepInEx,
 webhook HTTP, serveur de salles Railway (nouveau projet), TTS (SAPI, API externe, filtre anti-insultes), sons,
 module « Jeux maison ».
 

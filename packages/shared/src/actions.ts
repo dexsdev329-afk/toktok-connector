@@ -9,7 +9,12 @@ export const TriggerSchema = z.discriminatedUnion('kind', [
     minCount: z.number().int().positive().default(1),
   }),
   /** Any gift whose total value (unit diamonds x count) is >= min. */
-  z.object({ kind: z.literal('diamonds'), min: z.number().int().positive() }),
+  z.object({
+    kind: z.literal('diamonds'),
+    min: z.number().int().positive(),
+    /** Optional upper bound (inclusive) to build gift tiers: 1-9, 10-98, 99+... */
+    max: z.number().int().positive().optional(),
+  }),
   /** Fires once every `every` likes (cumulated across viewers for the session). */
   z.object({ kind: z.literal('likes'), every: z.number().int().positive() }),
   z.object({ kind: z.literal('follow') }),
