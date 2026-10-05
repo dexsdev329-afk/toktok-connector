@@ -80,3 +80,10 @@ prettier : MIT ou Apache-2.0.
 
 Le texte complet de chaque licence se trouve dans le dossier `node_modules/<paquet>/` correspondant et dans le
 dépôt de chaque projet.
+
+## Données
+
+- **Liste des cadeaux TikTok** (`packages/core/src/gifts/tiktok-gifts-data.ts`) : noms, valeurs en diamants et
+  chemins d'images sur le CDN de TikTok, données publiées par TikTok et relevées sur la liste publique
+  https://streamtoearn.io/gifts. Aucune image ni texte de ce site n'est copié : l'app télécharge les images
+  depuis le CDN de TikTok à l'affichage. Les images de cadeaux appartiennent à TikTok.

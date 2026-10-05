@@ -83,3 +83,18 @@ export function makeId(prefix = 'evt'): string {
   counter = (counter + 1) % 1_000_000;
   return `${prefix}_${Date.now().toString(36)}_${counter.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
+
+/**
+ * Stable id of a TikTok gift from its name and value ("Rose", 1 -> "tt-rose-1"), used by the
+ * built-in gift list (which has no numeric TikTok ids). Live gifts match it by name and value.
+ */
+export function giftKey(name: string, diamonds: number): string {
+  const slug = name
+    .normalize('NFKD')
+    .replace(/[^\u0020-\u007e]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+  return `tt-${slug || 'gift'}-${diamonds}`;
+}

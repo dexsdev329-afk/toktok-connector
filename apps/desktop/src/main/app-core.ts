@@ -17,6 +17,8 @@ import {
   TikTokConnector,
   KickConnector,
   KICK_GIFTED_SUB,
+  TIKTOK_GIFTS,
+  builtinTikTokGift,
   defaultKickTransport,
   createRepositories,
   generateToken,
@@ -46,6 +48,7 @@ import {
   OverlayStyleSchema,
   contextFromEvent,
   makeId,
+  giftKey,
   type Action,
   type Effect,
   type GiftInfo,
@@ -209,6 +212,7 @@ export class AppCore {
       apiToken: () => this.settings().apiToken,
       triggerAction: (id) => this.triggerActionById(id),
       giftImagePath: (id) => (this.images.has(id) ? this.images.filePath(id) : null),
+      fetchGiftImage: (id) => this.fetchGiftImage(id),
       soundPath: (id) => this.repos.sounds.get(id)?.filePath ?? null,
       getGame: (id) => this.homeGames.get(id),
       onGameMessage: (id, data) =>
@@ -454,9 +458,8 @@ export class AppCore {
   }
 
   private giftsForSimulator(): GiftInfo[] {
-    const list = this.catalog.list().filter((g) => g.diamonds > 0);
-    // Kick gifts come last: the gift rain only picks among the first (cheapest TikTok) gifts.
-    return [...(list.length ? list : SIMULATOR_GIFTS), ...this.kickCatalog.list(), KICK_GIFTED_SUB];
+    // The gift rain only picks among the first gifts: keep the usual simulator gifts first.
+    return [...SIMULATOR_GIFTS, ...this.tiktokGifts(), ...this.kickCatalog.list(), KICK_GIFTED_SUB];
   }
 
   // ---------------------------------------------------------------- gifts
@@ -469,12 +472,25 @@ export class AppCore {
     };
   }
 
+  /** TikTok gifts: those seen live (numeric TikTok ids), then the built-in list for the others. */
+  private tiktokGifts(): GiftInfo[] {
+    const learned = this.catalog.list();
+    const known = new Set(learned.map((g) => giftKey(g.name, g.diamonds)));
+    return [...learned, ...TIKTOK_GIFTS.filter((g) => !known.has(g.id))].sort(
+      (a, b) => a.diamonds - b.diamonds || a.name.localeCompare(b.name),
+    );
+  }
+
+  /** Image of a gift, downloaded from TikTok's CDN on first display (then cached on disk). */
+  private async fetchGiftImage(id: string): Promise<string | null> {
+    const gift = this.catalog.get(id) ?? builtinTikTokGift(id);
+    return gift && (await this.images.ensure(gift)) ? this.images.filePath(id) : null;
+  }
+
   giftList(): GiftInfo[] {
     const origin = this.server.port ? this.server.origin : null;
-    // Until the real catalog is fetched, expose the simulator gifts so the app is usable offline.
-    const list = this.catalog.list();
-    const tiktok = (list.length ? list : SIMULATOR_GIFTS).map((g) =>
-      origin && this.images.has(g.id)
+    const tiktok = this.tiktokGifts().map((g) =>
+      origin && (this.images.has(g.id) || g.imageUrl)
         ? { ...g, imageUrl: `${origin}/gift-img/${encodeURIComponent(g.id)}` }
         : g,
     );

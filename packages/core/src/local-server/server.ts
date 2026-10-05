@@ -35,6 +35,8 @@ export interface LocalServerOptions {
   triggerAction?: (actionId: string) => boolean;
   /** Resolves a cached gift image file (public, no token needed). */
   giftImagePath?: (giftId: string) => string | null;
+  /** Downloads a gift image not cached yet; resolves to its file (or null). */
+  fetchGiftImage?: (giftId: string) => Promise<string | null>;
   /** Resolves an imported sound file by id. */
   soundPath?: (soundId: string) => string | null;
   /** Home games: access check (+ optional local folder served under /games/<id>/). */
@@ -200,13 +202,20 @@ export class LocalServer {
     }
 
     if (req.method === 'GET' && parts[0] === 'gift-img' && parts.length === 2) {
-      const file = this.opts.giftImagePath?.(decodeURIComponent(parts[1]!)) ?? null;
-      if (!file) return this.send(res, 404, 'Introuvable');
-      return this.serveFile(res, file, {
-        'Cache-Control': 'public, max-age=86400',
-        'Content-Type': 'image/webp',
-        'Cross-Origin-Resource-Policy': 'cross-origin',
-      });
+      const giftId = decodeURIComponent(parts[1]!);
+      const serve = (file: string | null) =>
+        file
+          ? this.serveFile(res, file, {
+              'Cache-Control': 'public, max-age=86400',
+              'Content-Type': 'image/webp',
+              'Cross-Origin-Resource-Policy': 'cross-origin',
+            })
+          : this.send(res, 404, 'Introuvable');
+      const cached = this.opts.giftImagePath?.(giftId) ?? null;
+      if (cached || !this.opts.fetchGiftImage) return serve(cached);
+      // Not downloaded yet (built-in gift list): fetch it from TikTok's CDN on first display.
+      void this.opts.fetchGiftImage(giftId).then(serve, () => serve(null));
+      return;
     }
 
     if (req.method === 'GET' && parts[0] === 'sounds' && parts.length === 2) {

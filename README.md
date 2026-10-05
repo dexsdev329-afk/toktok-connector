@@ -12,6 +12,8 @@ réel : commandes Minecraft, touches clavier, alertes à l'écran…
   du live est détectée et l'app attend automatiquement le live suivant.
 - **Connexion Kick** (lecture seule, sans compte) : chat, abonnements, abonnements offerts et cadeaux Kicks.
   TikTok et Kick peuvent être connectés **en même temps** (multistream) : une seule session, les mêmes actions.
+- **Catalogue complet des cadeaux TikTok** (≈ 1 650 cadeaux, toutes régions, avec valeur et image) dès
+  l'installation, sans attendre un premier live ; les cadeaux vus en live le complètent.
 - **Simulateur** pour tout tester sans être en live : cadeaux avec combos, likes, follows, chat, pluie
   d'événements.
 - **Moteur d'actions** : déclencheur → liste d'effets. Options disponibles : cooldown global et par viewer,

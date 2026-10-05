@@ -145,7 +145,9 @@ function SimulatorCard() {
   const [run] = useAction((fn: () => Promise<void>) => fn());
 
   useEffect(() => {
-    if (!giftId && gifts[0]) setGiftId(gifts[0].id);
+    // Default to the Rose (the most common gift), else the first one.
+    const preferred = gifts.find((g) => g.name === 'Rose' && g.diamonds === 1) ?? gifts[0];
+    if (!giftId && preferred) setGiftId(preferred.id);
   }, [gifts, giftId]);
 
   return (

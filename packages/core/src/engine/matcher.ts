@@ -1,4 +1,4 @@
-import type { Action, LiveEvent, LiveUser, UserFilter } from '@toktok/shared';
+import { giftKey, type Action, type LiveEvent, type LiveUser, type UserFilter } from '@toktok/shared';
 
 /**
  * Per-session state needed by stateful triggers (likes thresholds).
@@ -44,7 +44,10 @@ export function matchAction(action: Action, event: LiveEvent, state: MatchState)
   const t = action.trigger;
   switch (t.kind) {
     case 'gift': {
-      if (event.type !== 'gift' || event.gift.id !== t.giftId) return NO_MATCH;
+      if (event.type !== 'gift') return NO_MATCH;
+      // Built-in list ids ("tt-rose-1") match live gifts by name and value.
+      if (event.gift.id !== t.giftId && giftKey(event.gift.name, event.gift.diamonds) !== t.giftId)
+        return NO_MATCH;
       const units = Math.floor(event.count / t.minCount);
       if (units < 1) return NO_MATCH;
       return { units, countPerExecution: t.minCount };

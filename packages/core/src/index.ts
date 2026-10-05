@@ -20,3 +20,4 @@ export * from './extras/tts';
 export * from './local-server/game-client';
 export * from './connectors/kick/kick-connector';
 export * from './connectors/kick/mapper';
+export * from './gifts/tiktok-gifts';
