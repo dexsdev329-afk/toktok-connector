@@ -130,8 +130,10 @@ describe('Minecraft RCON', () => {
   });
 
   it('every preset renders to at least one command', () => {
+    const integ = new MinecraftRconIntegration(RconConfigSchema.parse({ player: 'Enzo' }), { log: () => {} });
     for (const p of RCON_PRESETS) {
-      expect(renderRconCommands(String(p.params.command), ctx, 'Enzo').length).toBeGreaterThan(0);
+      const cmds = integ.commandsFor(fx(p.effectId, p.params), ctx);
+      expect(cmds.length, p.id).toBeGreaterThan(0);
     }
   });
 

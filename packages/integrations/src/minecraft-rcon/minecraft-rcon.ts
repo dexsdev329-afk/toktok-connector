@@ -1,5 +1,12 @@
-import { renderTemplate, type Effect, type TemplateContext } from '@toktok/shared';
+import type { Effect, TemplateContext } from '@toktok/shared';
 import { z } from 'zod';
+import {
+  MINECRAFT_EFFECTS,
+  MINECRAFT_PRESETS,
+  buildMinecraftCommands,
+  rawCommandEffect,
+  renderCommandTemplate,
+} from '../minecraft/commands';
 import {
   IntegrationError,
   stringParam,
@@ -20,6 +27,8 @@ export const RconConfigSchema = z.object({
     .max(16)
     .regex(/^[A-Za-z0-9_]*$/)
     .default(''),
+  /** 1.21.5+ writes text components in SNBT; older versions use JSON strings. */
+  version: z.enum(['java', 'java-legacy']).default('java'),
   timeoutMs: z.coerce.number().int().min(500).max(30_000).default(3000),
 });
 export type RconConfig = z.infer<typeof RconConfigSchema>;
@@ -42,206 +51,35 @@ const defaultFactory: RconFactory = async (cfg) => {
   return (await Rcon.connect(cfg)) as unknown as RconClient;
 };
 
-/** Target used in presets: the configured player, or every player. */
-const P = '{player}';
-
+/** Raw command examples, on top of the structured presets. */
 export const RCON_PRESETS: EffectPreset[] = [
-  // Mobs
+  ...MINECRAFT_PRESETS,
   {
-    id: 'mc.zombie',
-    name: 'Zombie',
-    category: 'mobs',
+    id: 'mc.raw.title-chat',
+    name: 'Commande libre : titre + son',
+    category: 'Commandes libres',
     effectId: 'rcon.command',
     params: {
-      command: `execute at ${P} run summon zombie ~ ~ ~2 {CustomName:'"{username}"',CustomNameVisible:1b}`,
+      command:
+        'title {player} actionbar {"text":"{displayName} : {count}x {giftName}","color":"gold"}\nexecute at {player} run playsound minecraft:entity.player.levelup master {player}',
     },
   },
   {
-    id: 'mc.creeper',
-    name: 'Creeper',
-    category: 'mobs',
+    id: 'mc.raw.anvil',
+    name: 'Commande libre : enclume au-dessus',
+    category: 'Commandes libres',
     effectId: 'rcon.command',
-    params: {
-      command: `execute at ${P} run summon creeper ~ ~ ~3 {CustomName:'"{username}"',CustomNameVisible:1b}`,
-    },
-  },
-  {
-    id: 'mc.skeleton',
-    name: 'Squelette',
-    category: 'mobs',
-    effectId: 'rcon.command',
-    params: {
-      command: `execute at ${P} run summon skeleton ~ ~ ~3 {CustomName:'"{username}"',CustomNameVisible:1b}`,
-    },
-  },
-  {
-    id: 'mc.wolf',
-    name: 'Loup apprivoisé (aide)',
-    category: 'mobs',
-    effectId: 'rcon.command',
-    params: {
-      command: `execute at ${P} run summon wolf ~ ~ ~1 {CustomName:'"{username}"',CustomNameVisible:1b}`,
-    },
-  },
-  {
-    id: 'mc.chicken-rain',
-    name: 'Pluie de poulets',
-    category: 'mobs',
-    effectId: 'rcon.command',
-    params: { command: `execute at ${P} run summon chicken ~ ~10 ~` },
-  },
-  // TNT
-  {
-    id: 'mc.tnt',
-    name: 'TNT',
-    category: 'tnt',
-    effectId: 'rcon.command',
-    params: { command: `execute at ${P} run summon tnt ~ ~3 ~ {fuse:60}` },
-  },
-  {
-    id: 'mc.tnt-fast',
-    name: 'TNT (mèche courte)',
-    category: 'tnt',
-    effectId: 'rcon.command',
-    params: { command: `execute at ${P} run summon tnt ~ ~1 ~ {fuse:20}` },
-  },
-  // Potion effects
-  {
-    id: 'mc.speed',
-    name: 'Vitesse 30s',
-    category: 'effects',
-    effectId: 'rcon.command',
-    params: { command: `effect give ${P} minecraft:speed 30 2` },
-  },
-  {
-    id: 'mc.slowness',
-    name: 'Lenteur 20s',
-    category: 'effects',
-    effectId: 'rcon.command',
-    params: { command: `effect give ${P} minecraft:slowness 20 2` },
-  },
-  {
-    id: 'mc.blindness',
-    name: 'Cécité 10s',
-    category: 'effects',
-    effectId: 'rcon.command',
-    params: { command: `effect give ${P} minecraft:blindness 10 0` },
-  },
-  {
-    id: 'mc.levitation',
-    name: 'Lévitation 5s',
-    category: 'effects',
-    effectId: 'rcon.command',
-    params: { command: `effect give ${P} minecraft:levitation 5 1` },
-  },
-  {
-    id: 'mc.regeneration',
-    name: 'Régénération 15s',
-    category: 'effects',
-    effectId: 'rcon.command',
-    params: { command: `effect give ${P} minecraft:regeneration 15 1` },
-  },
-  {
-    id: 'mc.heal',
-    name: 'Soin complet',
-    category: 'effects',
-    effectId: 'rcon.command',
-    params: { command: `effect give ${P} minecraft:instant_health 1 4` },
-  },
-  // Weather / time
-  {
-    id: 'mc.rain',
-    name: 'Pluie',
-    category: 'world',
-    effectId: 'rcon.command',
-    params: { command: 'weather rain 600' },
-  },
-  {
-    id: 'mc.thunder',
-    name: 'Orage',
-    category: 'world',
-    effectId: 'rcon.command',
-    params: { command: 'weather thunder 600' },
-  },
-  {
-    id: 'mc.clear',
-    name: 'Beau temps',
-    category: 'world',
-    effectId: 'rcon.command',
-    params: { command: 'weather clear 600' },
-  },
-  {
-    id: 'mc.night',
-    name: 'Nuit',
-    category: 'world',
-    effectId: 'rcon.command',
-    params: { command: 'time set night' },
-  },
-  {
-    id: 'mc.day',
-    name: 'Jour',
-    category: 'world',
-    effectId: 'rcon.command',
-    params: { command: 'time set day' },
-  },
-  {
-    id: 'mc.lightning',
-    name: 'Éclair',
-    category: 'world',
-    effectId: 'rcon.command',
-    params: { command: `execute at ${P} run summon lightning_bolt ~2 ~ ~2` },
-  },
-  // Titles / messages
-  {
-    id: 'mc.title-gift',
-    name: 'Titre : merci pour le cadeau',
-    category: 'titles',
-    effectId: 'rcon.command',
-    params: {
-      command: `title ${P} title {"text":"{displayName}","color":"gold"}\ntitle ${P} subtitle {"text":"{count}x {giftName}","color":"yellow"}`,
-    },
-  },
-  {
-    id: 'mc.title-follow',
-    name: 'Titre : nouvel abonné',
-    category: 'titles',
-    effectId: 'rcon.command',
-    params: { command: `title ${P} actionbar {"text":"{displayName} suit le live !","color":"aqua"}` },
-  },
-  {
-    id: 'mc.say',
-    name: 'Message dans le chat',
-    category: 'titles',
-    effectId: 'rcon.command',
-    params: { command: 'tellraw @a {"text":"[LIVE] {displayName}: {message}","color":"light_purple"}' },
-  },
-  // Items
-  {
-    id: 'mc.diamond',
-    name: 'Donner un diamant',
-    category: 'items',
-    effectId: 'rcon.command',
-    params: { command: `give ${P} minecraft:diamond {count}` },
-  },
-  {
-    id: 'mc.golden-apple',
-    name: 'Pomme dorée',
-    category: 'items',
-    effectId: 'rcon.command',
-    params: { command: `give ${P} minecraft:golden_apple 1` },
+    params: { command: 'execute at {player} run setblock ~ ~6 ~ minecraft:anvil' },
   },
 ];
 
-/** Renders a (multi-line) command template into individual safe commands. */
+/** Messages returned by the server when a command did not work. */
+const FAILURE =
+  /^(Unknown|Incorrect|Invalid|Expected|No (player|entity) was found|That position is not loaded|Could not)/i;
+
+/** Renders a (multi-line) raw command template into individual safe commands. */
 export function renderRconCommands(template: string, ctx: TemplateContext, player: string): string[] {
-  const target = player || '@a';
-  return template
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('#'))
-    .map((line) => renderTemplate(line.replaceAll('{player}', target), ctx, 'minecraft'))
-    .map((line) => line.replace(/^\//, ''))
-    .slice(0, 20);
+  return renderCommandTemplate(template, ctx, player, 'java');
 }
 
 export class MinecraftRconIntegration implements Integration {
@@ -253,6 +91,7 @@ export class MinecraftRconIntegration implements Integration {
     private readonly config: RconConfig,
     private readonly deps: IntegrationDeps,
     private readonly factory: RconFactory = defaultFactory,
+    private readonly random: () => number = Math.random,
   ) {}
 
   status(): IntegrationStatus {
@@ -263,8 +102,15 @@ export class MinecraftRconIntegration implements Integration {
     return minecraftRconDefinition.effects;
   }
 
+  /** Connects and reports who is online (the "Test connection" button). */
   async connect(): Promise<void> {
-    await this.ensureClient();
+    const client = await this.ensureClient();
+    try {
+      const list = (await client.send('list')).trim();
+      this.state = { state: 'connected', ...(list ? { detail: list.slice(0, 200) } : {}) };
+    } catch {
+      // `list` is informative only.
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -275,16 +121,32 @@ export class MinecraftRconIntegration implements Integration {
     if (c) await c.end().catch(() => undefined);
   }
 
+  commandsFor(effect: Effect, ctx: TemplateContext): string[] {
+    if (effect.effectId === 'rcon.command') {
+      return renderCommandTemplate(
+        stringParam(effect, 'command'),
+        ctx,
+        this.config.player,
+        this.config.version,
+      );
+    }
+    const cmds = buildMinecraftCommands(effect, ctx, {
+      edition: this.config.version,
+      player: this.config.player,
+      random: this.random,
+    });
+    if (!cmds) throw new IntegrationError(`Effet inconnu: ${effect.effectId}`);
+    return cmds;
+  }
+
   async execute(effect: Effect, ctx: TemplateContext, signal: AbortSignal): Promise<void> {
-    if (effect.effectId !== 'rcon.command') throw new IntegrationError(`Effet inconnu: ${effect.effectId}`);
-    const commands = renderRconCommands(stringParam(effect, 'command'), ctx, this.config.player);
+    const commands = this.commandsFor(effect, ctx);
     for (const cmd of commands) {
       if (signal.aborted) return;
       const client = await this.ensureClient();
       try {
-        const res = await client.send(cmd);
-        if (/^(Unknown|Incorrect|Invalid|Expected)/i.test(res))
-          this.deps.log('warn', `RCON: ${cmd} -> ${res}`);
+        const res = (await client.send(cmd)).trim();
+        if (FAILURE.test(res)) this.deps.log('warn', `Minecraft : « ${cmd} » → ${res}`);
       } catch (err) {
         // The socket may have died: drop it so the next command reconnects.
         await this.disconnect();
@@ -320,9 +182,14 @@ export class MinecraftRconIntegration implements Integration {
         .catch((err: unknown) => {
           this.connecting = null;
           const msg = err instanceof Error ? err.message : String(err);
-          this.state = { state: 'error', detail: msg };
+          const hint = /auth/i.test(msg)
+            ? ' (mot de passe RCON incorrect ?)'
+            : /ECONNREFUSED/.test(msg)
+              ? ' (serveur éteint ou RCON désactivé ?)'
+              : '';
+          this.state = { state: 'error', detail: msg + hint };
           throw new IntegrationError(
-            `Connexion RCON impossible (${this.config.host}:${this.config.port}) : ${msg}`,
+            `Connexion RCON impossible (${this.config.host}:${this.config.port}) : ${msg}${hint}`,
           );
         });
     }
@@ -345,19 +212,19 @@ export const minecraftRconDefinition: IntegrationDefinition<RconConfig> = {
       type: 'string',
       help: 'integrations.rcon.playerHelp',
     },
-  ],
-  configSchema: RconConfigSchema,
-  effects: [
     {
-      id: 'rcon.command',
-      name: 'Commande Minecraft',
-      description:
-        'Une commande par ligne. Variables : {player} {username} {displayName} {giftName} {count} {diamonds} {message}',
-      params: [
-        { key: 'command', label: 'effects.command', type: 'text', placeholder: 'say Merci {displayName} !' },
+      key: 'version',
+      label: 'integrations.rcon.version',
+      type: 'select',
+      default: 'java',
+      options: [
+        { value: 'java', label: '1.21.5 et plus récent' },
+        { value: 'java-legacy', label: '1.13 à 1.21.4' },
       ],
     },
   ],
+  configSchema: RconConfigSchema,
+  effects: [...MINECRAFT_EFFECTS, rawCommandEffect('rcon.command')],
   presets: RCON_PRESETS,
   create: (config, deps) => new MinecraftRconIntegration(config, deps),
 };

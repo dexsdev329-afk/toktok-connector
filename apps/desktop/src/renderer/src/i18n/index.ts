@@ -10,7 +10,9 @@ export type Language = keyof typeof LANGUAGES;
 void i18n.use(initReactI18next).init({
   resources: { fr: { translation: fr }, en: { translation: en } },
   lng: 'fr',
-  fallbackLng: 'fr',
+  // Every language is typed against the French dictionary, so no fallback is needed
+  // (and English Minecraft labels must fall back to game ids, not to French).
+  fallbackLng: false,
   interpolation: { escapeValue: false },
   returnNull: false,
 });

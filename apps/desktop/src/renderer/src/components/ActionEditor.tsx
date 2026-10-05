@@ -424,30 +424,11 @@ function EffectsEditor({
                 {effectDef.description && <p className="text-xs text-slate-500">{effectDef.description}</p>}
                 {effectDef.params.map((p) => (
                   <Field key={p.key} label={t(p.label, { defaultValue: p.key })}>
-                    {p.type === 'text' ? (
-                      <Textarea
-                        rows={4}
-                        value={String(effect.params[p.key] ?? '')}
-                        placeholder={p.placeholder}
-                        onChange={(e) => update(i, { params: { ...effect.params, [p.key]: e.target.value } })}
-                      />
-                    ) : p.type === 'number' ? (
-                      <Input
-                        type="number"
-                        min={p.min}
-                        max={p.max}
-                        value={String(effect.params[p.key] ?? p.default ?? '')}
-                        onChange={(e) =>
-                          update(i, { params: { ...effect.params, [p.key]: num(e.target.value) } })
-                        }
-                      />
-                    ) : (
-                      <Input
-                        value={String(effect.params[p.key] ?? '')}
-                        placeholder={p.placeholder}
-                        onChange={(e) => update(i, { params: { ...effect.params, [p.key]: e.target.value } })}
-                      />
-                    )}
+                    <ParamInput
+                      param={p}
+                      value={effect.params[p.key]}
+                      onChange={(v) => update(i, { params: { ...effect.params, [p.key]: v } })}
+                    />
                   </Field>
                 ))}
                 <div className="grid grid-cols-3 gap-2">
@@ -488,6 +469,63 @@ function EffectsEditor({
       </div>
     </div>
   );
+}
+
+type ParamDef = EffectDefinitionDto['params'][number];
+
+/** Input for one effect parameter, according to its declared type. */
+function ParamInput({
+  param: p,
+  value,
+  onChange,
+}: {
+  param: ParamDef;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const { t } = useTranslation();
+  const current = value ?? p.default;
+  switch (p.type) {
+    case 'text':
+      return (
+        <Textarea
+          rows={4}
+          value={String(current ?? '')}
+          placeholder={p.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    case 'number':
+      return (
+        <Input
+          type="number"
+          min={p.min}
+          max={p.max}
+          value={String(current ?? '')}
+          onChange={(e) => onChange(num(e.target.value, Number(p.default ?? 0)))}
+        />
+      );
+    case 'boolean':
+      return <Toggle checked={current === true} onChange={onChange} label={t('common.yes')} />;
+    case 'select':
+      return (
+        <Select value={String(current ?? '')} onChange={(e) => onChange(e.target.value)}>
+          {p.options?.map((o) => (
+            <option key={o.value} value={o.value}>
+              {t(`mcValues.${o.value}`, { defaultValue: o.label })}
+            </option>
+          ))}
+        </Select>
+      );
+    default:
+      return (
+        <Input
+          value={String(current ?? '')}
+          placeholder={p.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+  }
 }
 
 function newEffect(integrationId: string, def: EffectDefinitionDto): Effect {
