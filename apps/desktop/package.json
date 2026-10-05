@@ -12,13 +12,10 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
-    "dist:win": "electron-builder --win --x64 --publish never"
+    "dist:win": "pnpm exec electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "@jitsi/robotjs": "^0.6.24",
-    "@toktok/core": "workspace:*",
-    "@toktok/integrations": "workspace:*",
-    "@toktok/shared": "workspace:*",
     "better-sqlite3": "^13.0.3",
     "rcon-client": "^4.2.5",
     "tiktok-live-connector": "2.5.0",
@@ -27,6 +24,9 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@toktok/core": "workspace:*",
+    "@toktok/integrations": "workspace:*",
+    "@toktok/shared": "workspace:*",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",

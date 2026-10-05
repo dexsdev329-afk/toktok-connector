@@ -35,15 +35,6 @@ importers:
       '@jitsi/robotjs':
         specifier: ^0.6.24
         version: 0.6.24
-      '@toktok/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@toktok/integrations':
-        specifier: workspace:*
-        version: link:../../packages/integrations
-      '@toktok/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       better-sqlite3:
         specifier: ^13.0.3
         version: 13.0.3
@@ -63,6 +54,15 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@7.3.6(@types/node@24.19.1)(jiti@2.7.0)(lightningcss@1.33.0))
+      '@toktok/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@toktok/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
+      '@toktok/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@types/react':
         specifier: ^19.2.0
         version: 19.3.0
