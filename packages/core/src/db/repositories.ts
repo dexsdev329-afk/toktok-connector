@@ -504,6 +504,51 @@ export class SessionsRepo {
   }
 }
 
+export interface SoundRecord {
+  id: string;
+  name: string;
+  filePath: string;
+  volume: number;
+}
+
+export class SoundsRepo {
+  constructor(private readonly db: Db) {}
+
+  list(): SoundRecord[] {
+    const rows = this.db.prepare('SELECT * FROM sounds ORDER BY name').all() as {
+      id: string;
+      name: string;
+      file_path: string;
+      volume: number;
+    }[];
+    return rows.map((r) => ({ id: r.id, name: r.name, filePath: r.file_path, volume: r.volume }));
+  }
+
+  get(id: string): SoundRecord | null {
+    return this.list().find((s) => s.id === id) ?? null;
+  }
+
+  add(name: string, filePath: string, id = makeId('snd')): SoundRecord {
+    this.db
+      .prepare('INSERT INTO sounds (id, name, file_path, volume) VALUES (?, ?, ?, 1)')
+      .run(id, name, filePath);
+    return this.get(id)!;
+  }
+
+  update(id: string, patch: { name?: string; volume?: number }): void {
+    const cur = this.get(id);
+    if (!cur) throw new Error('Son introuvable');
+    const volume = Math.min(1, Math.max(0, patch.volume ?? cur.volume));
+    this.db
+      .prepare('UPDATE sounds SET name = ?, volume = ? WHERE id = ?')
+      .run(patch.name ?? cur.name, volume, id);
+  }
+
+  delete(id: string): void {
+    this.db.prepare('DELETE FROM sounds WHERE id = ?').run(id);
+  }
+}
+
 export interface Repositories {
   settings: SettingsRepo;
   secrets: SecretsRepo;
@@ -514,6 +559,7 @@ export interface Repositories {
   overlays: OverlaysRepo;
   eventLog: EventLogRepo;
   sessions: SessionsRepo;
+  sounds: SoundsRepo;
 }
 
 export function createRepositories(db: Db, cipher: SecretCipher): Repositories {
@@ -527,5 +573,6 @@ export function createRepositories(db: Db, cipher: SecretCipher): Repositories {
     overlays: new OverlaysRepo(db),
     eventLog: new EventLogRepo(db),
     sessions: new SessionsRepo(db),
+    sounds: new SoundsRepo(db),
   };
 }

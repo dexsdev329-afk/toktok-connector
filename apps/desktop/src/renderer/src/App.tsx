@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge } from './components/StatusBadge';
 import { Toasts, cx } from './components/ui';
 import { useStore } from './lib/store';
+import { MediaPlayer } from './components/MediaPlayer';
 import { ActionsPage } from './pages/ActionsPage';
+import { AudioPage } from './pages/AudioPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { JournalPage } from './pages/JournalPage';
@@ -15,6 +17,7 @@ const PAGES = {
   actions: { icon: '⚡', component: ActionsPage },
   integrations: { icon: '🎮', component: IntegrationsPage },
   overlays: { icon: '▣', component: OverlaysPage },
+  audio: { icon: '🔊', component: AudioPage },
   journal: { icon: '☰', component: JournalPage },
   settings: { icon: '⚙', component: SettingsPage },
 } as const;
@@ -65,6 +68,7 @@ export function App() {
         <Page />
       </main>
       <Toasts />
+      <MediaPlayer />
     </div>
   );
 }

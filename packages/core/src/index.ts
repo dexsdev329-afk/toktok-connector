@@ -15,3 +15,5 @@ export * from './entitlements';
 export * from './local-server/server';
 export * from './local-server/overlay-feeder';
 export * from './gifts/image-cache';
+export * from './extras/profanity';
+export * from './extras/tts';

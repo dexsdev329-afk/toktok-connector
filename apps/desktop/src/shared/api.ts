@@ -196,11 +196,64 @@ export interface DesktopApi {
   journal: {
     recent(): Promise<JournalEntry[]>;
   };
+  media: {
+    ended(id: string): Promise<void>;
+  };
+  sounds: {
+    list(): Promise<SoundDto[]>;
+    importFiles(): Promise<SoundDto[]>;
+    update(id: string, name: string, volume: number): Promise<void>;
+    remove(id: string): Promise<void>;
+    play(id: string): Promise<void>;
+    getVolume(): Promise<number>;
+    setVolume(v: number): Promise<void>;
+  };
+  tts: {
+    get(): Promise<TtsState>;
+    update(
+      patch: Partial<Omit<TtsState, 'hasElevenlabsKey'>>,
+      elevenlabsKey?: string | null,
+    ): Promise<TtsState>;
+    voices(): Promise<string[]>;
+    test(text: string): Promise<void>;
+    skip(): Promise<void>;
+  };
   settings: {
     get(): Promise<AppSettings>;
     update(patch: SettingsPatch): Promise<AppSettings>;
     regenerateApiToken(): Promise<AppSettings>;
   };
+}
+
+/** Audio requests played by the renderer. */
+export type MediaRequest =
+  | { id: string; kind: 'audio'; src: string; volume: number }
+  | { id: string; kind: 'speech'; text: string; voice: string; rate: number; volume: number }
+  | { id: string; kind: 'stop' };
+
+export interface TtsState {
+  enabled: boolean;
+  engine: 'sapi' | 'browser' | 'elevenlabs';
+  voice: string;
+  rate: number;
+  volume: number;
+  readChat: 'off' | 'all' | 'subscribers' | 'moderators';
+  skipCommands: boolean;
+  giftMinDiamonds: number;
+  giftTemplate: string;
+  chatTemplate: string;
+  filterMode: 'off' | 'censor' | 'skip';
+  customWords: string[];
+  maxLength: number;
+  maxQueue: number;
+  elevenlabsVoiceId: string;
+  hasElevenlabsKey: boolean;
+}
+
+export interface SoundDto {
+  id: string;
+  name: string;
+  volume: number;
 }
 
 /** Push channels main -> renderer. */
@@ -209,6 +262,7 @@ export interface PushEvents {
   session: SessionInfo;
   journal: JournalEntry[];
   integrations: void;
+  media: MediaRequest;
 }
 
 export type ApiNamespace = keyof DesktopApi;

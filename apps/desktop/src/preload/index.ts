@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
-const PUSH_CHANNELS = new Set(['connection', 'session', 'journal', 'integrations']);
+const PUSH_CHANNELS = new Set(['connection', 'session', 'journal', 'integrations', 'media']);
 
 /**
  * Minimal, generic bridge: a single invoke channel (validated by the main process)

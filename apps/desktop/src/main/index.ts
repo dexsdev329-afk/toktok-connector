@@ -93,6 +93,7 @@ if (!app.requestSingleInstanceLock()) {
         session: (info) => push('session', info),
         journal: (entries) => push('journal', entries),
         integrations: () => push('integrations', undefined),
+        media: (req) => push('media', req),
       },
     });
     registerIpc(core, () => mainWindow);

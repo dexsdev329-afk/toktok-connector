@@ -35,6 +35,8 @@ export interface LocalServerOptions {
   triggerAction?: (actionId: string) => boolean;
   /** Resolves a cached gift image file (public, no token needed). */
   giftImagePath?: (giftId: string) => string | null;
+  /** Resolves an imported sound file by id. */
+  soundPath?: (soundId: string) => string | null;
 }
 
 const MIME: Record<string, string> = {
@@ -181,6 +183,12 @@ export class LocalServer {
         'Content-Type': 'image/webp',
         'Cross-Origin-Resource-Policy': 'cross-origin',
       });
+    }
+
+    if (req.method === 'GET' && parts[0] === 'sounds' && parts.length === 2) {
+      const file = this.opts.soundPath?.(decodeURIComponent(parts[1]!)) ?? null;
+      if (!file) return this.send(res, 404, 'Introuvable');
+      return this.serveFile(res, file, { 'Cache-Control': 'no-cache' });
     }
 
     if (parts[0] === 'api') return this.handleApi(req, res, parts.slice(1));

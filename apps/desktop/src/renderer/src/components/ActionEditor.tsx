@@ -103,6 +103,7 @@ export function ActionEditor({
   const [draft, setDraft] = useState<Draft>(() => (action ? structuredClone(action) : newDraft(profileId)));
   const [defs] = useLoad(() => api.integrations.definitions());
   const [instances] = useLoad(() => api.integrations.list());
+  const [sounds] = useLoad(() => api.sounds.list());
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const [save, busy] = useAction(async () => {
     await api.actions.save({ ...draft, name: draft.name.trim() || triggerSummary(t, draft.trigger, []) });
@@ -203,6 +204,26 @@ export function ActionEditor({
               </Field>
             )}
           </div>
+        </section>
+
+        <section className="grid grid-cols-2 gap-3">
+          <Field label={`🔊 ${t('actions.sound')}`}>
+            <Select value={draft.soundId ?? ''} onChange={(e) => set({ soundId: e.target.value || null })}>
+              <option value="">{t('common.none')}</option>
+              {sounds?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={`🗣 ${t('actions.tts')}`}>
+            <Input
+              value={draft.ttsTemplate ?? ''}
+              placeholder="{displayName} lance une TNT !"
+              onChange={(e) => set({ ttsTemplate: e.target.value || null })}
+            />
+          </Field>
         </section>
 
         <section>

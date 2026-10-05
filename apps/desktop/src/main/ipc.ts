@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import { exportProfile, importProfile } from '@toktok/core';
+import { TtsSettingsSchema, exportProfile, importProfile } from '@toktok/core';
 import { ActionSchema, EffectSchema, OverlayConfigSchema, type ActionInput } from '@toktok/shared';
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { z } from 'zod';
@@ -38,6 +38,15 @@ const IntegrationSaveSchema = z.object({
 
 const ActionSaveSchema = ActionSchema.extend({ id: id.optional() });
 const OverlaySaveSchema = OverlayConfigSchema.extend({ id: id.optional() });
+
+/**
+ * zod applies `.default()` values even on a `.partial()` schema: keep only the
+ * keys the caller actually sent, so a patch never resets other settings.
+ */
+function onlyGivenKeys<T extends object>(parsed: T, raw: unknown): Partial<T> {
+  const given = raw && typeof raw === 'object' ? Object.keys(raw) : [];
+  return Object.fromEntries(Object.entries(parsed).filter(([k]) => given.includes(k))) as Partial<T>;
+}
 
 type Handlers = { [N in keyof DesktopApi]: { [M in keyof DesktopApi[N]]: (...args: never[]) => unknown } };
 
@@ -195,6 +204,52 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
     },
     journal: {
       recent: () => core.recentJournal(),
+    },
+    media: {
+      ended: (mid: unknown) => core.media.ended(id.parse(mid)),
+    },
+    sounds: {
+      list: () => core.repos.sounds.list().map(({ id: sid, name, volume }) => ({ id: sid, name, volume })),
+      importFiles: async () => {
+        const win = getWindow();
+        const opts = {
+          title: 'Importer des sons',
+          properties: ['openFile' as const, 'multiSelections' as const],
+          filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg'] }],
+        };
+        const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+        if (res.canceled) return [];
+        const out = [];
+        for (const f of res.filePaths.slice(0, 50)) {
+          const snd = await core.importSound(f);
+          out.push({ id: snd.id, name: snd.name, volume: snd.volume });
+        }
+        return out;
+      },
+      update: (sid: unknown, name: unknown, volume: unknown) =>
+        core.repos.sounds.update(id.parse(sid), {
+          name: z.string().min(1).max(80).parse(name),
+          volume: z.number().min(0).max(1).parse(volume),
+        }),
+      remove: (sid: unknown) => core.removeSound(id.parse(sid)),
+      play: (sid: unknown) => core.playSound(id.parse(sid)),
+      getVolume: () => core.soundsVolume(),
+      setVolume: (v: unknown) => core.setSoundsVolume(z.number().min(0).max(1).parse(v)),
+    },
+    tts: {
+      get: () => core.ttsState(),
+      update: (patch: unknown, key: unknown) =>
+        core.updateTtsSettings(
+          onlyGivenKeys(TtsSettingsSchema.partial().strict().parse(patch), patch),
+          z.string().max(200).nullable().optional().parse(key),
+        ),
+      voices: () => core.ttsVoices(),
+      test: (text: unknown) => {
+        if (!core.tts.say(z.string().min(1).max(300).parse(text))) {
+          throw new Error('Synthèse vocale désactivée, message filtré ou file pleine');
+        }
+      },
+      skip: () => core.tts.skipAll(),
     },
     settings: {
       get: () => core.settings(),

@@ -1,3 +1,4 @@
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import {
   ActionEngine,
@@ -7,6 +8,8 @@ import {
   LocalServer,
   OverlayFeeder,
   SIMULATOR_GIFTS,
+  TtsService,
+  TtsSettingsSchema,
   SessionTracker,
   SimulatorConnector,
   TikTokConnector,
@@ -19,6 +22,8 @@ import {
   type IntegrationRecord,
   type Repositories,
   type SecretCipher,
+  type SoundRecord,
+  type TtsSettings,
 } from '@toktok/core';
 import { createTikTokClient } from '@toktok/core/tiktok-client';
 import { IntegrationManager, minecraftStarterPack, type InputDriver } from '@toktok/integrations';
@@ -34,8 +39,11 @@ import {
   type LiveEvent,
   type OverlayConfig,
   type OverlayKind,
+  renderTemplate,
 } from '@toktok/shared';
+import { MediaBridge, browserEngine, elevenLabsEngine, listSapiVoices, sapiEngine } from './media';
 import type {
+  MediaRequest,
   AppSettings,
   ConnectionInfo,
   IntegrationDto,
@@ -58,6 +66,9 @@ export const SETTINGS = {
   initialized: 'app.initialized',
 } as const;
 const SECRET_SIGN_KEY = 'tiktok.signApiKey';
+const SECRET_ELEVENLABS_KEY = 'tts.elevenlabsKey';
+const SOUND_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg']);
+const MAX_SOUND_BYTES = 10 * 1024 * 1024;
 const integrationSecretKey = (id: string, field: string) => `integration:${id}:${field}`;
 
 export interface AppCoreOptions {
@@ -71,6 +82,7 @@ export interface AppCoreOptions {
     session(info: SessionInfo): void;
     journal(entries: JournalEntry[]): void;
     integrations(): void;
+    media(req: MediaRequest): void;
   };
 }
 
@@ -95,6 +107,8 @@ export class AppCore {
   readonly server: LocalServer;
   readonly feeder: OverlayFeeder;
   readonly entitlements = unlockedEntitlements;
+  readonly media: MediaBridge;
+  readonly tts: TtsService;
 
   private journalBuffer: JournalEntry[] = [];
   private readonly journalRecent: JournalEntry[] = [];
@@ -116,9 +130,24 @@ export class AppCore {
       statusChanged: () => opts.push.integrations(),
     });
 
+    this.media = new MediaBridge((req) => opts.push.media(req));
+    this.tts = new TtsService(
+      () => this.ttsSettings(),
+      {
+        sapi: sapiEngine(),
+        browser: browserEngine(this.media),
+        elevenlabs: elevenLabsEngine(this.media, () => this.repos.secrets.get(SECRET_ELEVENLABS_KEY)),
+      },
+      (level, message) => this.system(level, message),
+    );
+
     this.engine = new ActionEngine({
       runner: this.integrations,
       journal: (e) => this.bus.emit('journal', e),
+      onJobStart: (action, ctx) => {
+        if (action.soundId) this.playSound(action.soundId);
+        if (action.ttsTemplate) this.tts.say(renderTemplate(action.ttsTemplate, ctx));
+      },
       concurrency: this.settings().engineConcurrency,
       maxPerSecond: this.settings().engineMaxPerSecond,
     });
@@ -144,6 +173,7 @@ export class AppCore {
       apiToken: () => this.settings().apiToken,
       triggerAction: (id) => this.triggerActionById(id),
       giftImagePath: (id) => (this.images.has(id) ? this.images.filePath(id) : null),
+      soundPath: (id) => this.repos.sounds.get(id)?.filePath ?? null,
     });
     this.feeder = new OverlayFeeder(
       () => this.repos.overlays.list(),
@@ -204,6 +234,7 @@ export class AppCore {
       if (this.tracker.handle(event)) this.engine.resetSession();
       this.engine.handleEvent(event);
       this.integrations.broadcast(event);
+      this.tts.handleEvent(event);
       this.feeder.handle(event);
       if (!NOT_PERSISTED.has(event.type)) {
         this.repos.eventLog.append(this.tracker.get().sessionId, event.type, event);
@@ -577,6 +608,70 @@ export class AppCore {
     const o = this.repos.overlays.get(id);
     if (!o) throw new Error('Overlay introuvable');
     return this.overlayDto(o);
+  }
+
+  // ---------------------------------------------------------------- sounds & TTS
+
+  ttsSettings(): TtsSettings {
+    return TtsSettingsSchema.parse(this.repos.settings.get('tts', {}));
+  }
+
+  updateTtsSettings(
+    patch: Partial<TtsSettings>,
+    elevenlabsKey?: string | null,
+  ): TtsSettings & { hasElevenlabsKey: boolean } {
+    const next = TtsSettingsSchema.parse({ ...this.ttsSettings(), ...patch });
+    this.repos.settings.set('tts', next);
+    if (elevenlabsKey === null) this.repos.secrets.delete(SECRET_ELEVENLABS_KEY);
+    else if (elevenlabsKey) this.repos.secrets.set(SECRET_ELEVENLABS_KEY, elevenlabsKey.trim());
+    return this.ttsState();
+  }
+
+  ttsState(): TtsSettings & { hasElevenlabsKey: boolean } {
+    return { ...this.ttsSettings(), hasElevenlabsKey: this.repos.secrets.has(SECRET_ELEVENLABS_KEY) };
+  }
+
+  ttsVoices(): Promise<string[]> {
+    return listSapiVoices();
+  }
+
+  soundsVolume(): number {
+    return this.repos.settings.get('sounds.volume', 0.8);
+  }
+
+  setSoundsVolume(v: number): void {
+    this.repos.settings.set('sounds.volume', Math.min(1, Math.max(0, v)));
+  }
+
+  /** Copies an audio file into the app data folder and registers it. */
+  async importSound(source: string): Promise<SoundRecord> {
+    const ext = path.extname(source).toLowerCase();
+    if (!SOUND_EXTENSIONS.has(ext)) throw new Error('Formats acceptés : mp3, wav, ogg');
+    const stat = await fs.stat(source);
+    if (stat.size > MAX_SOUND_BYTES) throw new Error('Fichier trop volumineux (10 Mo max)');
+    const id = makeId('snd');
+    const dir = path.join(this.opts.dataDir, 'sounds');
+    await fs.mkdir(dir, { recursive: true });
+    const dest = path.join(dir, `${id}${ext}`);
+    await fs.copyFile(source, dest);
+    return this.repos.sounds.add(path.basename(source, ext).slice(0, 80), dest, id);
+  }
+
+  async removeSound(id: string): Promise<void> {
+    const s = this.repos.sounds.get(id);
+    this.repos.sounds.delete(id);
+    if (s && s.filePath.startsWith(path.join(this.opts.dataDir, 'sounds')))
+      await fs.rm(s.filePath, { force: true });
+  }
+
+  playSound(id: string): void {
+    const s = this.repos.sounds.get(id);
+    if (!s || !this.server.port) return;
+    void this.media.play({
+      kind: 'audio',
+      src: `${this.server.origin}/sounds/${encodeURIComponent(id)}`,
+      volume: s.volume * this.soundsVolume(),
+    });
   }
 
   // ---------------------------------------------------------------- first run

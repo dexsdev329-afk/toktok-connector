@@ -36,13 +36,13 @@ pnpm install
 pnpm dev          # compile les overlays puis lance l'app en mode développement
 ```
 
-| Commande | Rôle |
-|---|---|
-| `pnpm test` | Tests unitaires (Vitest) |
-| `pnpm typecheck` | Vérification TypeScript (strict) |
-| `pnpm lint` | ESLint |
-| `pnpm build` | Compile les overlays et l'app |
-| `pnpm dist:win` | Installeur Windows NSIS (`apps/desktop/release/`) |
+| Commande         | Rôle                                              |
+| ---------------- | ------------------------------------------------- |
+| `pnpm test`      | Tests unitaires (Vitest)                          |
+| `pnpm typecheck` | Vérification TypeScript (strict)                  |
+| `pnpm lint`      | ESLint                                            |
+| `pnpm build`     | Compile les overlays et l'app                     |
+| `pnpm dist:win`  | Installeur Windows NSIS (`apps/desktop/release/`) |
 
 L'installeur Windows est aussi produit par la CI GitHub Actions (artefact `windows-installer`).
 
@@ -99,7 +99,7 @@ d'un effet l'envoie tout de suite dans le jeu, pour tester.
 
 #### Minecraft Bedrock (Windows 10/11, `/connect`)
 
-1. Dans le monde : **triche activée**. Dans *Paramètres → Général*, désactive **« Websockets chiffrés
+1. Dans le monde : **triche activée**. Dans _Paramètres → Général_, désactive **« Websockets chiffrés
    obligatoires »** (le chiffrement n'est pas encore pris en charge).
 2. Dans l'onglet **Intégrations**, ajoute **Minecraft Bedrock** (port 19135 par défaut).
 3. Dans le chat du jeu, tape : `/connect localhost:19135`. Le message « TokTok Game Connector Live :
@@ -138,6 +138,32 @@ type gg !
 
 Les touches restées enfoncées sont toujours relâchées à la fin d'une séquence, même si on l'annule. Certains
 jeux DirectX ou anti-triche ignorent les entrées simulées.
+
+### Bridge pour mods (Unity, Lua…)
+
+Ajoute l'intégration **Bridge mods**. Elle ouvre un serveur local (`ws://127.0.0.1:21214`) protégé par un
+jeton. Chaque mod qui s'y connecte déclare ses effets, qui apparaissent aussitôt dans l'éditeur d'actions.
+Le protocole est décrit dans [docs/bridge-protocol.md](docs/bridge-protocol.md), et un exemple BepInEx en C#
+se trouve dans [examples/unity-bepinex-bridge](examples/unity-bepinex-bridge).
+
+### HTTP / Webhook
+
+L'effet « Requête HTTP » appelle n'importe quelle URL (GET, POST…) à chaque action. Les variables placées
+dans l'URL sont encodées, celles du corps JSON sont échappées. Si le corps est vide, l'app envoie tout le
+contexte (`username`, `giftName`, `count`, `diamonds`…). C'est la façon la plus simple de brancher tes jeux
+web hébergés sur Railway.
+
+### Sons & synthèse vocale
+
+Onglet **Sons & voix** :
+
+- Importe des sons (mp3, wav, ogg), puis associe-en un à chaque action. Il y a un volume par son et un
+  volume général.
+- La synthèse vocale peut lire le chat (tout le monde, abonnés ou modos), les gros cadeaux, et une phrase
+  propre à chaque action. Trois moteurs : voix Windows (SAPI), voix du système, ou ElevenLabs avec ta clé
+  API.
+- Le filtre anti-insultes (français et anglais, accents et leetspeak compris) remplace les mots par « bip »
+  ou ignore le message. Tu peux ajouter tes propres mots.
 
 ### 4. Overlays
 
