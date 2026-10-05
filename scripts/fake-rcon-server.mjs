@@ -45,4 +45,6 @@ net
     });
     sock.on('error', () => undefined);
   })
-  .listen(port, '127.0.0.1', () => console.log(`Faux serveur RCON sur 127.0.0.1:${port} (mot de passe : ${password})`));
+  .listen(port, '127.0.0.1', () =>
+    console.log(`Faux serveur RCON sur 127.0.0.1:${port} (mot de passe : ${password})`),
+  );
