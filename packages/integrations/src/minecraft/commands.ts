@@ -421,12 +421,11 @@ const SAFE_ID = /^[a-z0-9_]+$/;
  * Text that ends up inside quotes in a command: strips everything that could
  * break out of a string or inject formatting (quotes, backslashes, §, control chars).
  */
+// eslint-disable-next-line no-control-regex
+const UNSAFE_TEXT = /[\u0000-\u001f\u007f"'\\§]/g;
+
 export function safeText(s: string, max = 80): string {
-  // eslint-disable-next-line no-control-regex
-  return s
-    .replace(/[\u0000-\u001f\u007f"'\\§]/g, '')
-    .trim()
-    .slice(0, max);
+  return s.replace(UNSAFE_TEXT, '').trim().slice(0, max);
 }
 
 /** Player target: a name (validated) or @a. Bedrock names with spaces must be quoted. */
