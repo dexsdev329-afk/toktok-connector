@@ -1,0 +1,48 @@
+/** Minimal query interface, satisfied by pg.Pool and by PGlite (used in tests). */
+export interface Queryable {
+  query<R = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<{ rows: R[] }>;
+}
+
+const MIGRATIONS: string[] = [
+  `CREATE TABLE users (
+     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     email text NOT NULL UNIQUE,
+     password_hash text NOT NULL,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     stripe_customer_id text UNIQUE,
+     subscription_id text,
+     subscription_status text,
+     current_period_end timestamptz,
+     cancel_at_period_end boolean NOT NULL DEFAULT false,
+     -- Pro granted by an admin (creators, partners). NULL until = forever.
+     pro_granted boolean NOT NULL DEFAULT false,
+     pro_granted_until timestamptz
+   )`,
+  `CREATE TABLE devices (
+     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     device_id text NOT NULL,
+     name text NOT NULL,
+     token_hash text NOT NULL UNIQUE,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     last_seen_at timestamptz NOT NULL DEFAULT now(),
+     UNIQUE (user_id, device_id)
+   )`,
+  `CREATE TABLE stripe_events (
+     id text PRIMARY KEY,
+     type text NOT NULL,
+     received_at timestamptz NOT NULL DEFAULT now()
+   )`,
+];
+
+/** Applies pending migrations (each one exactly once, in order). */
+export async function migrate(db: Queryable): Promise<void> {
+  await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (version int PRIMARY KEY)`);
+  const { rows } = await db.query<{ version: number }>('SELECT version FROM schema_migrations');
+  const done = new Set(rows.map((r) => Number(r.version)));
+  for (let i = 0; i < MIGRATIONS.length; i++) {
+    if (done.has(i + 1)) continue;
+    await db.query(MIGRATIONS[i]!);
+    await db.query('INSERT INTO schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING', [i + 1]);
+  }
+}
