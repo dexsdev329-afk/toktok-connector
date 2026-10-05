@@ -174,6 +174,17 @@ const fr = {
       playerHelp: 'Vide = le joueur qui a tapé /connect.',
       logChat: 'Afficher le chat du jeu dans le journal',
     },
+    webhook: {
+      baseUrl: 'URL de base (facultatif)',
+      baseUrlHelp: 'Les effets avec une URL commençant par / l’utilisent. « Tester » fait un GET dessus.',
+      authorization: 'En-tête Authorization (facultatif)',
+      timeoutMs: 'Délai max (ms)',
+    },
+    bridge: {
+      port: 'Port local',
+      token: 'Jeton du mod',
+      tokenHelp: 'Laisse vide pour en générer un. À copier dans la config de ton mod.',
+    },
     input: {
       stepDelay: 'Pause entre deux étapes (ms)',
     },
@@ -309,6 +320,8 @@ const fr = {
     light_purple: 'Rose',
     blue: 'Bleu',
   },
+  webhook: { method: 'Méthode', url: 'URL', body: 'Corps JSON' },
+  bridge: { mod: 'Id du mod', effect: 'Effet', params: 'Paramètres (JSON)' },
   effects: {
     command: 'Commande(s)',
     script: 'Script',

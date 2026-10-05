@@ -2,14 +2,14 @@
 
 ## Décisions validées (octobre 2026)
 
-| Sujet | Décision |
-|---|---|
-| Nom | **TokTok Game Connector Live** |
-| Connecteur TikTok | **tiktok-live-connector** (AGPL-3.0, voir THIRD_PARTY_LICENSES.md), isolé derrière `LiveConnector` |
-| Serveur de salles | Un **nouveau projet Railway** sera créé en phase 2 (protocole défini par nous) |
-| Licence du code de l'app | Pas de décision particulière pour l'instant |
-| Signature de code Windows | Pas pour l'instant (avertissement SmartScreen possible) |
-| Priorité après la base | **Minecraft** (Java RCON, puis Bedrock) |
+| Sujet                     | Décision                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| Nom                       | **TokTok Game Connector Live**                                                                     |
+| Connecteur TikTok         | **tiktok-live-connector** (AGPL-3.0, voir THIRD_PARTY_LICENSES.md), isolé derrière `LiveConnector` |
+| Serveur de salles         | Un **nouveau projet Railway** sera créé en phase 2 (protocole défini par nous)                     |
+| Licence du code de l'app  | Pas de décision particulière pour l'instant                                                        |
+| Signature de code Windows | Pas pour l'instant (avertissement SmartScreen possible)                                            |
+| Priorité après la base    | **Minecraft** (Java RCON, puis Bedrock)                                                            |
 
 ## Vérifications techniques (sources officielles)
 
@@ -32,24 +32,29 @@
 ## Phases
 
 ### Phase 1 : MVP ✅
+
 App Electron, connecteur TikTok, simulateur, moteur d'actions, Minecraft RCON, simulation clavier, 3 overlays
 (alertes, top donateurs, objectif de likes), installeur NSIS, tests Vitest, CI.
 
 ### Focus Minecraft ✅ (avancé de la phase 2)
+
 Effets structurés Java et Bedrock, intégration Bedrock `/connect`, pack Minecraft en un clic, test d'un
 effet depuis l'éditeur, faux serveur RCON pour les tests. Reste à faire : websockets chiffrés Bedrock
 (`enableencryption`, à valider sur un vrai client).
 
 ### Phase 2
+
 Manette virtuelle (ViGEmBus), bridge pour mods et exemple BepInEx,
 webhook HTTP, serveur de salles Railway (nouveau projet), TTS (SAPI, API externe, filtre anti-insultes), sons,
 module « Jeux maison ».
 
 ### Phase 3
+
 Kick, overlays restants (chat, viewers, roue, timer, derniers followers), éditeur de thèmes, i18n complet,
 mises à jour automatiques (electron-updater, GitHub Releases), Chaos Mod expérimental.
 
 ### Phase 4
+
 Backend comptes, licences et Stripe (Express + PostgreSQL sur Railway). Les licences seront des tokens Ed25519
 vérifiés hors ligne, avec un délai de grâce. Les feature flags sont déjà branchés : voir
 `packages/core/src/entitlements.ts`.

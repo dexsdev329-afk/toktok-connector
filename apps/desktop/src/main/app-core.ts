@@ -203,6 +203,7 @@ export class AppCore {
       this.bus.emit('journal', { kind: 'event', ts: event.timestamp, event });
       if (this.tracker.handle(event)) this.engine.resetSession();
       this.engine.handleEvent(event);
+      this.integrations.broadcast(event);
       this.feeder.handle(event);
       if (!NOT_PERSISTED.has(event.type)) {
         this.repos.eventLog.append(this.tracker.get().sessionId, event.type, event);
@@ -481,6 +482,7 @@ export class AppCore {
       config: rec.config,
       secretsSet,
       status: this.integrations.status(rec.id),
+      effects: this.integrations.instanceEffects(rec.id) ?? def?.effects ?? [],
     };
   }
 
@@ -491,6 +493,7 @@ export class AppCore {
     const plain: Record<string, unknown> = {};
     for (const f of def.configFields) {
       if (!secretFields.has(f.key) && f.key in input.config) plain[f.key] = input.config[f.key];
+      if (f.autoGenerate === 'token' && !plain[f.key]) plain[f.key] = generateToken();
     }
     const id = input.id ?? makeId('int');
     // Validate the full config (with secrets) before persisting anything.

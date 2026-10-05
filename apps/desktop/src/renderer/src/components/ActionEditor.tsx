@@ -343,8 +343,7 @@ function EffectsEditor({
 
   const add = () => {
     const inst = instances[0];
-    const def = inst && defByKind.get(inst.kind);
-    const effectDef = def?.effects[0];
+    const effectDef = inst?.effects[0];
     if (!inst || !effectDef) return;
     onChange([...effects, newEffect(inst.id, effectDef)]);
   };
@@ -356,7 +355,8 @@ function EffectsEditor({
       {effects.map((effect, i) => {
         const inst = instances.find((x) => x.id === effect.integrationId);
         const def = inst ? defByKind.get(inst.kind) : undefined;
-        const effectDef = def?.effects.find((e) => e.id === effect.effectId);
+        const available = inst?.effects ?? def?.effects ?? [];
+        const effectDef = available.find((e) => e.id === effect.effectId);
         return (
           <div key={i} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
             <div className="flex flex-wrap items-end gap-2">
@@ -365,7 +365,7 @@ function EffectsEditor({
                   value={effect.integrationId}
                   onChange={(e) => {
                     const ni = instances.find((x) => x.id === e.target.value);
-                    const nd = ni && defByKind.get(ni.kind)?.effects[0];
+                    const nd = ni?.effects[0];
                     if (ni && nd) update(i, newEffect(ni.id, nd));
                   }}
                 >
@@ -380,11 +380,11 @@ function EffectsEditor({
                 <Select
                   value={effect.effectId}
                   onChange={(e) => {
-                    const nd = def?.effects.find((x) => x.id === e.target.value);
+                    const nd = available.find((x) => x.id === e.target.value);
                     if (nd) update(i, newEffect(effect.integrationId, nd));
                   }}
                 >
-                  {def?.effects.map((x) => (
+                  {available.map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.name}
                     </option>

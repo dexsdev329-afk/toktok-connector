@@ -7,3 +7,6 @@ export * from './minecraft-rcon/minecraft-rcon';
 export * from './minecraft/commands';
 export * from './minecraft-bedrock/minecraft-bedrock';
 export * from './minecraft/starter-pack';
+export * from './webhook/webhook';
+export * from './mod-bridge/protocol';
+export * from './mod-bridge/mod-bridge';

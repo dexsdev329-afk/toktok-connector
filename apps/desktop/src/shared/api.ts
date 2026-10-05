@@ -59,6 +59,7 @@ export interface ConfigFieldDto {
   max?: number;
   options?: { value: string; label: string }[];
   help?: string;
+  autoGenerate?: 'token';
 }
 
 export interface EffectDefinitionDto {
@@ -103,6 +104,8 @@ export interface IntegrationDto {
   /** Secret fields that have a stored value. */
   secretsSet: string[];
   status: { state: 'disconnected' | 'connecting' | 'connected' | 'error'; detail?: string };
+  /** Effects of this instance (bridges include the effects declared by connected mods). */
+  effects: EffectDefinitionDto[];
 }
 
 export interface IntegrationSaveInput {

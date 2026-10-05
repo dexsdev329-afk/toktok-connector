@@ -1,9 +1,12 @@
-import type { Effect, TemplateContext } from '@toktok/shared';
+import type { Effect, LiveEvent, TemplateContext } from '@toktok/shared';
 import { inputDefinition } from './input/input-integration';
 import { minecraftBedrockDefinition } from './minecraft-bedrock/minecraft-bedrock';
 import { minecraftRconDefinition } from './minecraft-rcon/minecraft-rcon';
+import { modBridgeDefinition } from './mod-bridge/mod-bridge';
+import { webhookDefinition } from './webhook/webhook';
 import {
   IntegrationError,
+  type EffectDefinition,
   type Integration,
   type IntegrationDefinition,
   type IntegrationDeps,
@@ -15,6 +18,8 @@ export const BUILTIN_DEFINITIONS: IntegrationDefinition<any>[] = [
   minecraftRconDefinition,
   minecraftBedrockDefinition,
   inputDefinition,
+  modBridgeDefinition,
+  webhookDefinition,
 ];
 
 export interface IntegrationInstanceConfig {
@@ -78,6 +83,22 @@ export class IntegrationManager {
 
   status(id: string): IntegrationStatus {
     return this.instances.get(id)?.impl.status() ?? { state: 'disconnected', detail: 'désactivée' };
+  }
+
+  /** Effects of a running instance (bridges add effects declared by connected mods). */
+  instanceEffects(id: string): EffectDefinition[] | null {
+    return this.instances.get(id)?.impl.listEffects() ?? null;
+  }
+
+  /** Forwards a live event to integrations that want it (never throws). */
+  broadcast(event: LiveEvent): void {
+    for (const { impl } of this.instances.values()) {
+      try {
+        impl.onLiveEvent?.(event);
+      } catch {
+        // an integration must never break event delivery
+      }
+    }
   }
 
   async disposeAll(): Promise<void> {

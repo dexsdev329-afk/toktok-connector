@@ -176,6 +176,17 @@ const en: Dict = {
       playerHelp: 'Empty = the player who typed /connect.',
       logChat: 'Show in-game chat in the log',
     },
+    webhook: {
+      baseUrl: 'Base URL (optional)',
+      baseUrlHelp: 'Used by effects whose URL starts with /. “Test” sends a GET to it.',
+      authorization: 'Authorization header (optional)',
+      timeoutMs: 'Timeout (ms)',
+    },
+    bridge: {
+      port: 'Local port',
+      token: 'Mod token',
+      tokenHelp: 'Leave empty to generate one. Copy it into your mod config.',
+    },
     input: {
       stepDelay: 'Pause between steps (ms)',
     },
@@ -201,6 +212,8 @@ const en: Dict = {
   },
   // English labels fall back to the game identifiers.
   mcValues: {} as Dict['mcValues'],
+  webhook: { method: 'Method', url: 'URL', body: 'JSON body' },
+  bridge: { mod: 'Mod id', effect: 'Effect', params: 'Parameters (JSON)' },
   effects: {
     command: 'Command(s)',
     script: 'Script',

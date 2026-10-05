@@ -1,4 +1,4 @@
-import type { Effect, TemplateContext } from '@toktok/shared';
+import type { Effect, LiveEvent, TemplateContext } from '@toktok/shared';
 import type { z } from 'zod';
 import type { InputDriver } from './input/driver';
 
@@ -15,6 +15,8 @@ export interface ConfigField {
   max?: number;
   options?: { value: string; label: string }[];
   help?: string;
+  /** Filled with a random token when left empty (e.g. shared secrets for local servers). */
+  autoGenerate?: 'token';
 }
 
 /** A parameter of an effect, edited in the action editor. */
@@ -61,6 +63,8 @@ export interface Integration {
   status(): IntegrationStatus;
   listEffects(): EffectDefinition[];
   execute(effect: Effect, ctx: TemplateContext, signal: AbortSignal): Promise<void>;
+  /** Receives every live event (bridges forwarding events to games). */
+  onLiveEvent?(event: LiveEvent): void;
 }
 
 /** Host services injected into integrations (native drivers, logging...). */
