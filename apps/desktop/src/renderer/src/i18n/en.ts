@@ -38,9 +38,13 @@ const en: Dict = {
     disconnected: 'Disconnected',
   },
   dashboard: {
-    connection: 'TikTok LIVE connection',
+    connection: 'Live connections',
     username: 'TikTok username',
     usernamePlaceholder: '@your_account',
+    platform: { tiktok: 'TikTok', kick: 'Kick' },
+    placeholder: { tiktok: '@your_account', kick: 'your Kick channel name' },
+    multistream:
+      'You can connect TikTok and Kick at the same time: both lives feed the same actions and overlays.',
     connect: 'Connect',
     disconnect: 'Disconnect',
     retryIn: 'Retrying in {{s}} s',
@@ -112,6 +116,7 @@ const en: Dict = {
     maxMultiplier: 'Max multiplier',
     userFilter: 'Who can trigger',
     everyone: 'Everyone (except deny list)',
+    platforms: 'Platforms:',
     moderatorsOnly: 'Moderators',
     subscribersOnly: 'Subscribers',
     followersOnly: 'Followers',

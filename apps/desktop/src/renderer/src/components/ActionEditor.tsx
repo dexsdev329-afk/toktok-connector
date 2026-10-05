@@ -81,6 +81,7 @@ function newDraft(profileId: string): Draft {
       allowList: [],
       denyList: [],
     },
+    platforms: [],
     soundId: null,
     ttsTemplate: null,
   };
@@ -239,6 +240,22 @@ export function ActionEditor({
             ))}
           </div>
           <p className="mt-1 text-xs text-slate-500">{t('actions.everyone')}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <span className="text-sm text-slate-300">{t('actions.platforms')}</span>
+            {(['tiktok', 'kick'] as const).map((p) => (
+              <Toggle
+                key={p}
+                checked={!draft.platforms.length || draft.platforms.includes(p)}
+                onChange={(on) => {
+                  const current = draft.platforms.length ? draft.platforms : (['tiktok', 'kick'] as const);
+                  const next = on ? [...new Set([...current, p])] : current.filter((x) => x !== p);
+                  // Both (or none) selected means "every platform".
+                  set({ platforms: next.length === 2 ? [] : next });
+                }}
+                label={p === 'kick' ? 'Kick' : 'TikTok'}
+              />
+            ))}
+          </div>
           <Field label={t('actions.denyList')} className="mt-2">
             <Input
               value={draft.userFilter.denyList.join(', ')}

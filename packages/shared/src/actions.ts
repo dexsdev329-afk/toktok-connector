@@ -97,6 +97,11 @@ export const ActionSchema = z.object({
     allowList: [],
     denyList: [],
   }),
+  /** Live platforms this action reacts to; empty = all (simulated events always pass). */
+  platforms: z
+    .array(z.enum(['tiktok', 'kick']))
+    .max(2)
+    .default([]),
   soundId: z.string().nullable().default(null),
   ttsTemplate: z.string().max(300).nullable().default(null),
 });

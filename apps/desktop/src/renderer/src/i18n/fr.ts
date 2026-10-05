@@ -36,9 +36,13 @@ const fr = {
     disconnected: 'Déconnectée',
   },
   dashboard: {
-    connection: 'Connexion TikTok LIVE',
+    connection: 'Connexions live',
     username: 'Nom d’utilisateur TikTok',
     usernamePlaceholder: '@ton_compte',
+    platform: { tiktok: 'TikTok', kick: 'Kick' },
+    placeholder: { tiktok: '@ton_compte', kick: 'nom de ta chaîne Kick' },
+    multistream:
+      'Tu peux connecter TikTok et Kick en même temps : les deux lives alimentent les mêmes actions et overlays.',
     connect: 'Se connecter',
     disconnect: 'Se déconnecter',
     retryIn: 'Nouvel essai dans {{s}} s',
@@ -110,6 +114,7 @@ const fr = {
     maxMultiplier: 'Multiplicateur max',
     userFilter: 'Qui peut déclencher',
     everyone: 'Tout le monde (sauf liste noire)',
+    platforms: 'Plateformes :',
     moderatorsOnly: 'Modérateurs',
     subscribersOnly: 'Abonnés',
     followersOnly: 'Followers',

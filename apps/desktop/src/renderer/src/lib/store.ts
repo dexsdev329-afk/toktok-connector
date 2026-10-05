@@ -1,11 +1,11 @@
 import type { GiftInfo, JournalEntry } from '@toktok/shared';
 import { create } from 'zustand';
-import type { AppSettings, ConnectionInfo, SessionInfo } from '../../../shared/api';
+import type { AppSettings, Connections, SessionInfo } from '../../../shared/api';
 import i18n from '../i18n';
 import { api, onPush } from './api';
 
 interface LiveState {
-  connection: ConnectionInfo;
+  connection: Connections;
   session: SessionInfo;
   journal: JournalEntry[];
   journalPaused: boolean;
@@ -21,7 +21,7 @@ interface LiveState {
 const MAX_JOURNAL = 1000;
 
 export const useStore = create<LiveState>((set) => ({
-  connection: { status: 'idle', channel: null },
+  connection: { tiktok: { status: 'idle', channel: null }, kick: { status: 'idle', channel: null } },
   session: { sessionId: null, channel: null, likes: 0, viewers: 0, diamonds: 0, followers: 0 },
   journal: [],
   journalPaused: false,
@@ -55,7 +55,9 @@ export async function initStore(): Promise<void> {
   useStore.getState().setSettings(settings);
   await useStore.getState().reloadGifts();
 
-  onPush('connection', (c) => useStore.setState({ connection: c }));
+  onPush('connection', ({ platform, info }) =>
+    useStore.setState((st) => ({ connection: { ...st.connection, [platform]: info } })),
+  );
   onPush('session', (s) => useStore.setState({ session: s }));
   onPush('integrations', () =>
     useStore.setState((st) => ({ integrationsVersion: st.integrationsVersion + 1 })),

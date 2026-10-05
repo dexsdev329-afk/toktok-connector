@@ -2,6 +2,20 @@ import { useMemo, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { cx } from './ui';
 
+const isKick = (id: string) => id.startsWith('kick:');
+
+/** Gift value with its unit: diamonds on TikTok, Kicks on Kick. */
+function GiftValue({ id, value }: { id: string; value: number }) {
+  return isKick(id) ? (
+    <span className="text-xs text-slate-400 tabular-nums">
+      <span className="mr-1 rounded bg-green-500/20 px-1 text-[10px] font-semibold text-green-300">KICK</span>
+      {value} K
+    </span>
+  ) : (
+    <span className="text-xs text-slate-400 tabular-nums">{value} 💎</span>
+  );
+}
+
 /** Searchable gift picker showing image, name and value. */
 export function GiftSelect({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   const gifts = useStore((s) => s.gifts);
@@ -33,7 +47,7 @@ export function GiftSelect({ value, onChange }: { value: string; onChange: (id: 
           <span className="h-6 w-6" />
         )}
         <span className="flex-1 truncate">{selected ? selected.name : value || '—'}</span>
-        {selected && <span className="text-xs text-slate-400">{selected.diamonds} 💎</span>}
+        {selected && <GiftValue id={selected.id} value={selected.diamonds} />}
       </button>
       {open && (
         <div className="absolute z-30 mt-1 w-full min-w-64 rounded-lg border border-ink-700 bg-ink-900 shadow-xl">
@@ -65,7 +79,7 @@ export function GiftSelect({ value, onChange }: { value: string; onChange: (id: 
                   <span className="h-6 w-6" />
                 )}
                 <span className="flex-1 truncate">{g.name}</span>
-                <span className="text-xs text-slate-400 tabular-nums">{g.diamonds} 💎</span>
+                <GiftValue id={g.id} value={g.diamonds} />
               </button>
             ))}
             {filtered.length === 0 && query.trim() && (

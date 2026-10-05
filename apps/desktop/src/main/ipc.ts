@@ -7,6 +7,7 @@ import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
 import type { AppCore } from './app-core';
 
 const id = z.string().min(1).max(100);
+const platformSchema = z.enum(['tiktok', 'kick']);
 const simUser = z
   .object({
     username: z.string().max(24).optional(),
@@ -19,6 +20,7 @@ const SettingsPatchSchema = z
   .object({
     language: z.enum(['fr', 'en']),
     tiktokUsername: z.string().max(100),
+    kickChannel: z.string().max(100),
     streakMode: z.enum(['end', 'repeat']),
     serverPort: z.number().int().min(1024).max(65535),
     engineConcurrency: z.number().int().min(1).max(10),
@@ -95,8 +97,9 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
     },
     connection: {
       get: () => core.connection(),
-      connect: (username: unknown) => core.connectTikTok(z.string().min(1).max(100).parse(username)),
-      disconnect: () => core.tiktok.disconnect(),
+      connect: (platform: unknown, channel: unknown) =>
+        core.connectPlatform(platformSchema.parse(platform), z.string().min(1).max(100).parse(channel)),
+      disconnect: (platform: unknown) => core.disconnectPlatform(platformSchema.parse(platform)),
     },
     session: {
       get: () => core.tracker.get(),

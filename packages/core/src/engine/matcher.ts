@@ -99,3 +99,9 @@ export function passesUserFilter(filter: UserFilter, user: LiveUser | undefined)
   if (filter.followersOnly && user.isFollower) return true;
   return false;
 }
+
+/** Platform restriction of an action. Simulated events always pass so actions stay testable. */
+export function passesPlatformFilter(action: Pick<Action, 'platforms'>, event: LiveEvent): boolean {
+  if (!action.platforms.length || event.platform === 'simulator') return true;
+  return (action.platforms as string[]).includes(event.platform);
+}

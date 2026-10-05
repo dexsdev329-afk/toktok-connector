@@ -14,6 +14,9 @@ import {
   SessionTracker,
   SimulatorConnector,
   TikTokConnector,
+  KickConnector,
+  KICK_GIFTED_SUB,
+  defaultKickTransport,
   createRepositories,
   generateToken,
   openDatabase,
@@ -55,7 +58,9 @@ import type {
   MediaRequest,
   AppSettings,
   ConnectionInfo,
+  Connections,
   IntegrationDto,
+  LivePlatform,
   IntegrationSaveInput,
   OverlayDto,
   OverlaySaveInput,
@@ -67,6 +72,7 @@ import type {
 export const SETTINGS = {
   language: 'app.language',
   tiktokUsername: 'tiktok.username',
+  kickChannel: 'kick.channel',
   streakMode: 'gifts.streakMode',
   serverPort: 'server.port',
   engineConcurrency: 'engine.concurrency',
@@ -88,7 +94,7 @@ export interface AppCoreOptions {
   gamepad?: GamepadDriver | undefined;
   log: (level: 'info' | 'warn' | 'error', message: string) => void;
   push: {
-    connection(info: ConnectionInfo): void;
+    connection(platform: LivePlatform, info: ConnectionInfo): void;
     session(info: SessionInfo): void;
     journal(entries: JournalEntry[]): void;
     integrations(): void;
@@ -114,6 +120,8 @@ export class AppCore {
   readonly images: GiftImageCache;
   readonly simulator: SimulatorConnector;
   readonly tiktok: TikTokConnector;
+  readonly kick: KickConnector;
+  readonly kickCatalog: GiftCatalog;
   readonly server: LocalServer;
   readonly feeder: OverlayFeeder;
   readonly entitlements = unlockedEntitlements;
@@ -132,6 +140,7 @@ export class AppCore {
     this.seedDefaults();
 
     this.catalog = new GiftCatalog(this.repos.gifts, 'tiktok');
+    this.kickCatalog = new GiftCatalog(this.repos.gifts, 'kick');
     this.images = new GiftImageCache(path.join(opts.dataDir, 'gift-images'));
     this.tracker = new SessionTracker(this.repos.sessions);
 
@@ -175,6 +184,11 @@ export class AppCore {
         void this.images.ensure(g);
       },
       ...this.signKeyOption(),
+    });
+
+    this.kick = new KickConnector({
+      ...defaultKickTransport(),
+      onGiftSeen: (g) => this.kickCatalog.learn(g),
     });
 
     this.server = new LocalServer({
@@ -232,6 +246,7 @@ export class AppCore {
     this.engine.dispose();
     this.feeder.dispose();
     await this.tiktok.disconnect().catch(() => undefined);
+    await this.kick.disconnect().catch(() => undefined);
     await this.simulator.disconnect().catch(() => undefined);
     await this.integrations.disposeAll();
     await this.server.stop();
@@ -244,9 +259,14 @@ export class AppCore {
     const onEvent = (e: LiveEvent) => this.bus.emit('live', this.withLocalImage(e));
     this.tiktok.on('event', onEvent);
     this.simulator.on('event', onEvent);
+    this.kick.on('event', onEvent);
     this.tiktok.on('status', (s) => {
-      this.opts.push.connection(s);
-      if (s.status === 'connected') void this.refreshGiftsIfStale();
+      this.opts.push.connection('tiktok', s);
+      if (s.status === 'connected') void this.refreshGiftsIfStale('tiktok');
+    });
+    this.kick.on('status', (s) => {
+      this.opts.push.connection('kick', s);
+      if (s.status === 'connected') void this.refreshGiftsIfStale('kick');
     });
 
     this.bus.on('live', (event) => {
@@ -296,6 +316,7 @@ export class AppCore {
     return {
       language: s.get(SETTINGS.language, 'fr'),
       tiktokUsername: s.get(SETTINGS.tiktokUsername, ''),
+      kickChannel: s.get(SETTINGS.kickChannel, ''),
       hasSignApiKey: this.repos.secrets.has(SECRET_SIGN_KEY),
       streakMode: s.get(SETTINGS.streakMode, 'end'),
       serverPort: s.get(SETTINGS.serverPort, 21_213),
@@ -309,6 +330,7 @@ export class AppCore {
     const s = this.repos.settings;
     if (patch.language) s.set(SETTINGS.language, patch.language);
     if (patch.tiktokUsername !== undefined) s.set(SETTINGS.tiktokUsername, patch.tiktokUsername.trim());
+    if (patch.kickChannel !== undefined) s.set(SETTINGS.kickChannel, patch.kickChannel.trim());
     if (patch.streakMode) {
       s.set(SETTINGS.streakMode, patch.streakMode);
       this.tiktok.setStreakMode(patch.streakMode);
@@ -336,14 +358,23 @@ export class AppCore {
 
   // ---------------------------------------------------------------- connection
 
-  async connectTikTok(username: string): Promise<void> {
-    this.repos.settings.set(SETTINGS.tiktokUsername, username.trim());
+  async connectPlatform(platform: LivePlatform, channel: string): Promise<void> {
+    if (platform === 'kick') {
+      this.repos.settings.set(SETTINGS.kickChannel, channel.trim());
+      await this.kick.connect(channel);
+      return;
+    }
+    this.repos.settings.set(SETTINGS.tiktokUsername, channel.trim());
     this.tiktok.setSignApiKey(this.signKeyOption().signApiKey);
-    await this.tiktok.connect(username);
+    await this.tiktok.connect(channel);
   }
 
-  connection(): ConnectionInfo {
-    return this.tiktok.getStatus();
+  disconnectPlatform(platform: LivePlatform): Promise<void> {
+    return platform === 'kick' ? this.kick.disconnect() : this.tiktok.disconnect();
+  }
+
+  connection(): Connections {
+    return { tiktok: this.tiktok.getStatus(), kick: this.kick.getStatus() };
   }
 
   // ---------------------------------------------------------------- simulator
@@ -404,7 +435,8 @@ export class AppCore {
 
   private giftsForSimulator(): GiftInfo[] {
     const list = this.catalog.list().filter((g) => g.diamonds > 0);
-    return list.length ? list : SIMULATOR_GIFTS;
+    // Kick gifts come last: the gift rain only picks among the first (cheapest TikTok) gifts.
+    return [...(list.length ? list : SIMULATOR_GIFTS), ...this.kickCatalog.list(), KICK_GIFTED_SUB];
   }
 
   // ---------------------------------------------------------------- gifts
@@ -421,15 +453,27 @@ export class AppCore {
     const origin = this.server.port ? this.server.origin : null;
     // Until the real catalog is fetched, expose the simulator gifts so the app is usable offline.
     const list = this.catalog.list();
-    if (!list.length) return SIMULATOR_GIFTS;
-    return list.map((g) =>
+    const tiktok = (list.length ? list : SIMULATOR_GIFTS).map((g) =>
       origin && this.images.has(g.id)
         ? { ...g, imageUrl: `${origin}/gift-img/${encodeURIComponent(g.id)}` }
         : g,
     );
+    // Kick gift ids are prefixed with "kick:" so they never collide with TikTok ids.
+    return [...tiktok, ...this.kickCatalog.list(), KICK_GIFTED_SUB];
   }
 
+  /** Refreshes the TikTok catalog (needs a username) and the Kick one; returns the gift count. */
   async refreshGifts(): Promise<number> {
+    const [tiktok, kick] = await Promise.allSettled([this.refreshTikTokGifts(), this.refreshKickGifts()]);
+    if (tiktok.status === 'rejected' && kick.status === 'rejected') throw tiktok.reason;
+    if (tiktok.status === 'rejected') this.system('warn', `Cadeaux TikTok : ${String(tiktok.reason)}`);
+    if (kick.status === 'rejected') this.system('warn', `Cadeaux Kick : ${String(kick.reason)}`);
+    return (
+      (tiktok.status === 'fulfilled' ? tiktok.value : 0) + (kick.status === 'fulfilled' ? kick.value : 0)
+    );
+  }
+
+  private async refreshTikTokGifts(): Promise<number> {
     const username = this.settings().tiktokUsername || this.tiktok.getStatus().channel;
     if (!username) throw new Error('Renseigne d’abord ton nom d’utilisateur TikTok');
     const gifts = await this.tiktok.fetchGifts(username);
@@ -440,11 +484,21 @@ export class AppCore {
     return gifts.length;
   }
 
-  private async refreshGiftsIfStale(): Promise<void> {
-    if (!this.catalog.isStale(24 * 3_600_000)) return;
+  private async refreshKickGifts(): Promise<number> {
+    const gifts = await this.kick.fetchGifts();
+    if (gifts.length) this.kickCatalog.replaceAll(gifts);
+    return gifts.length;
+  }
+
+  private async refreshGiftsIfStale(platform: LivePlatform): Promise<void> {
+    const catalog = platform === 'kick' ? this.kickCatalog : this.catalog;
+    if (!catalog.isStale(24 * 3_600_000)) return;
     try {
-      const n = await this.refreshGifts();
-      this.system('info', `Catalogue de cadeaux mis à jour (${n})`);
+      const n = platform === 'kick' ? await this.refreshKickGifts() : await this.refreshTikTokGifts();
+      this.system(
+        'info',
+        `Catalogue de cadeaux ${platform === 'kick' ? 'Kick' : 'TikTok'} mis à jour (${n})`,
+      );
     } catch (err) {
       this.system('warn', `Catalogue de cadeaux : ${String(err)}`);
     }

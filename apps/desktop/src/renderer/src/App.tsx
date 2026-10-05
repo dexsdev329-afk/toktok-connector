@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge } from './components/StatusBadge';
 import { Toasts, cx } from './components/ui';
 import { useStore } from './lib/store';
+import { LIVE_PLATFORMS } from '../../shared/api';
 import { MediaPlayer } from './components/MediaPlayer';
 import { ActionsPage } from './pages/ActionsPage';
 import { AudioPage } from './pages/AudioPage';
@@ -59,9 +60,16 @@ export function App() {
           ))}
         </nav>
         <div className="border-t border-ink-800 p-3">
-          <StatusBadge status={connection.status} />
-          {connection.channel && (
-            <div className="mt-1 truncate text-xs text-slate-500">@{connection.channel}</div>
+          {LIVE_PLATFORMS.map((p) =>
+            connection[p].status === 'idle' && p !== 'tiktok' ? null : (
+              <div key={p} className="mb-1.5">
+                <StatusBadge status={connection[p].status} />
+                <div className="mt-0.5 truncate text-xs text-slate-500">
+                  {p === 'kick' ? 'Kick' : 'TikTok'}
+                  {connection[p].channel ? ` · @${connection[p].channel}` : ''}
+                </div>
+              </div>
+            ),
           )}
         </div>
       </aside>

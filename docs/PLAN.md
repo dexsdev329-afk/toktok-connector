@@ -17,8 +17,11 @@
   `roomUser`, `streamEnd`, `connected`, `disconnected`. Les combos concernent les cadeaux `giftType === 1` :
   `repeatCount` augmente, puis un dernier événement arrive avec `repeatEnd`. La signature passe par Euler
   Stream (`signApiKey` facultatif).
-- **Kick** : l'API officielle (docs.kick.com) envoie ses événements uniquement par webhook. Le chat Pusher
-  n'est pas documenté officiellement. → Phase 3 : Pusher en lecture, relais par le backend si nécessaire.
+- **Kick** : l'API officielle (docs.kick.com) envoie ses événements uniquement par webhook (URL publique et
+  application OAuth nécessaires). Le flux Pusher public utilisé par kick.com n'est pas documenté. Vérifié en
+  octobre 2026 sur des lives réels : clé `32cbd69e4b950bf97679` (cluster `us2`), canaux `chatrooms.<id>.v2`
+  (chat), `channel_<id>` (Kicks, abonnements) et `channel.<id>` (fin du live) ; catalogue des cadeaux sur
+  `web.kick.com/api/v1/kicks/gifts`. Aucun follow observé. → Implémenté en lecture seule (phase 3).
 - **GTA V Chaos Mod** (GPL-3.0) : on ne peut déclencher un effet précis que via le Debug WebSocket
   `ws://127.0.0.1:31819`, et seulement si le fichier `chaosmod/.enabledebugsocket` existe. → Intégration
   « expérimentale ».

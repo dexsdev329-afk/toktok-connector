@@ -18,3 +18,5 @@ export * from './gifts/image-cache';
 export * from './extras/profanity';
 export * from './extras/tts';
 export * from './local-server/game-client';
+export * from './connectors/kick/kick-connector';
+export * from './connectors/kick/mapper';

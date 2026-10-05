@@ -1,6 +1,6 @@
 # TokTok Game Connector Live
 
-Application Windows (Electron) qui relie un **TikTok LIVE** à des jeux PC, à des overlays et aux jeux de
+Application Windows (Electron) qui relie un **TikTok LIVE** et/ou un **live Kick** à des jeux PC, à des overlays et aux jeux de
 communauté d'Anonyme Agency. Les cadeaux, likes, follows et messages des viewers déclenchent des effets en temps
 réel : commandes Minecraft, touches clavier, alertes à l'écran…
 
@@ -10,6 +10,8 @@ réel : commandes Minecraft, touches clavier, alertes à l'écran…
 
 - **Connexion TikTok LIVE** via `tiktok-live-connector`. Reconnexion automatique (backoff exponentiel). La fin
   du live est détectée et l'app attend automatiquement le live suivant.
+- **Connexion Kick** (lecture seule, sans compte) : chat, abonnements, abonnements offerts et cadeaux Kicks.
+  TikTok et Kick peuvent être connectés **en même temps** (multistream) : une seule session, les mêmes actions.
 - **Simulateur** pour tout tester sans être en live : cadeaux avec combos, likes, follows, chat, pluie
   d'événements.
 - **Moteur d'actions** : déclencheur → liste d'effets. Options disponibles : cooldown global et par viewer,
@@ -71,6 +73,24 @@ En parallèle, chaque événement alimente les statistiques, les overlays et le 
 
 Dans le **Tableau de bord**, saisis ton pseudo TikTok puis clique sur **Se connecter**. Si tu n'es pas en
 live, l'app attend et se connecte automatiquement dès que le live démarre.
+
+**Kick** : saisis le nom de ta chaîne (ou son URL `kick.com/...`) dans la ligne Kick. Les deux plateformes
+peuvent tourner en même temps ; les spectateurs sont additionnés et les actions réagissent aux deux. Dans
+l'éditeur d'une action, la section **Plateformes** permet de la limiter à TikTok ou à Kick.
+
+Ce que Kick fournit à l'app (flux public en lecture seule, observé en octobre 2026) :
+
+| Événement Kick | Dans l'app |
+| --- | --- |
+| Message du chat (emotes converties en texte) | `chat` (commandes `!xxx`, mots-clés, TTS) |
+| Cadeau Kicks (Hell Yeah, Hype, Rage Quit…) | `gift` : id `kick:<gift_id>`, valeur en Kicks (comptée comme des 💎) |
+| Abonnement | `subscribe` |
+| Abonnements offerts | `gift` « Abonnement offert » (`kick:gifted-sub`), `count` = nombre d'abonnements |
+| Spectateurs (toutes les 30 s) / fin du live | `viewerCount` / `disconnected` |
+
+Limites : Kick ne diffuse pas publiquement les **follows** (aucun follow observé sur 72 chaînes en direct) et il
+n'y a pas de likes. Le flux n'est pas documenté officiellement par Kick : s'il change, l'app ignore les messages
+qu'elle ne comprend plus au lieu de planter.
 
 ### 2. Minecraft
 

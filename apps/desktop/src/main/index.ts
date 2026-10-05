@@ -90,7 +90,7 @@ if (!app.requestSingleInstanceLock()) {
       gamepad: loadGamepadDriver((m) => log('warn', m)),
       log,
       push: {
-        connection: (info) => push('connection', info),
+        connection: (platform, info) => push('connection', { platform, info }),
         session: (info) => push('session', info),
         journal: (entries) => push('journal', entries),
         integrations: () => push('integrations', undefined),

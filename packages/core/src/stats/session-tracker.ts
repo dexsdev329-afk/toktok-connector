@@ -26,6 +26,9 @@ export class SessionTracker {
   };
   private listeners = new Set<(s: SessionSnapshot) => void>();
   private platform: string = 'tiktok';
+  /** Platforms currently live in this session (TikTok and Kick can stream at the same time). */
+  private readonly live = new Map<string, string>();
+  private readonly viewersByPlatform = new Map<string, number>();
 
   constructor(private readonly sessions: SessionsRepo) {}
 
@@ -46,9 +49,15 @@ export class SessionTracker {
   handle(event: LiveEvent): boolean {
     let started = false;
     switch (event.type) {
-      case 'connected':
-        if (!this.snapshot.sessionId || this.snapshot.channel !== event.channel) {
+      case 'connected': {
+        const known = this.live.get(event.platform);
+        // Another platform joining a running session (multistream) keeps the session;
+        // the same platform switching to another channel starts a new one.
+        const joins = this.snapshot.sessionId && (known === undefined || known === event.channel);
+        this.live.set(event.platform, event.channel);
+        if (!joins) {
           this.end();
+          this.live.set(event.platform, event.channel);
           this.platform = event.platform;
           this.snapshot = {
             sessionId: this.sessions.start(event.platform, event.channel),
@@ -61,8 +70,14 @@ export class SessionTracker {
           started = true;
         }
         break;
+      }
       case 'disconnected':
-        if (event.liveEnded || event.reason === 'manual') this.end();
+        if (event.liveEnded || event.reason === 'manual') {
+          this.live.delete(event.platform);
+          this.viewersByPlatform.delete(event.platform);
+          if (this.live.size === 0) this.end();
+          else this.snapshot = { ...this.snapshot, viewers: this.totalViewers() };
+        }
         break;
       case 'gift': {
         const diamonds = event.gift.diamonds * event.count;
@@ -82,7 +97,8 @@ export class SessionTracker {
         this.snapshot = { ...this.snapshot, followers: this.snapshot.followers + 1 };
         break;
       case 'viewerCount':
-        this.snapshot = { ...this.snapshot, viewers: event.count };
+        this.viewersByPlatform.set(event.platform, event.count);
+        this.snapshot = { ...this.snapshot, viewers: this.totalViewers() };
         break;
       default:
         return false;
@@ -95,15 +111,25 @@ export class SessionTracker {
   reset(): void {
     const channel = this.snapshot.channel;
     const platform = this.platform;
+    const live = [...this.live];
     this.end();
+    for (const [k, v] of live) this.live.set(k, v);
     if (channel) {
       this.snapshot = { ...this.snapshot, sessionId: this.sessions.start(platform, channel), channel };
     }
     for (const l of this.listeners) l(this.snapshot);
   }
 
+  private totalViewers(): number {
+    let n = 0;
+    for (const v of this.viewersByPlatform.values()) n += v;
+    return n;
+  }
+
   private end(): void {
     if (this.snapshot.sessionId) this.sessions.end(this.snapshot.sessionId);
+    this.live.clear();
+    this.viewersByPlatform.clear();
     this.snapshot = { sessionId: null, channel: null, likes: 0, viewers: 0, diamonds: 0, followers: 0 };
   }
 }

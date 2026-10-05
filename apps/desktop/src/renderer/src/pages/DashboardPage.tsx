@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SimulatorUser } from '../../../shared/api';
+import { LIVE_PLATFORMS, type LivePlatform, type SimulatorUser } from '../../../shared/api';
 import { GiftSelect } from '../components/GiftSelect';
 import { JournalLine } from '../components/JournalLine';
 import { StatusBadge } from '../components/StatusBadge';
@@ -14,7 +14,7 @@ const fmt = new Intl.NumberFormat();
 export function DashboardPage() {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <ConnectionCard />
+      <ConnectionsCard />
       <StatsCard />
       <SimulatorCard />
       <div className="flex flex-col gap-4">
@@ -25,56 +25,77 @@ export function DashboardPage() {
   );
 }
 
-function ConnectionCard() {
+const PLATFORM_ICON: Record<LivePlatform, string> = { tiktok: '♪', kick: '🟩' };
+
+function ConnectionsCard() {
   const { t } = useTranslation();
-  const connection = useStore((s) => s.connection);
-  const settings = useStore((s) => s.settings);
-  const [username, setUsername] = useState(settings?.tiktokUsername ?? '');
-  const [connect, connecting] = useAction((u: string) => api.connection.connect(u));
-  const [disconnect] = useAction(() => api.connection.disconnect());
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+  return (
+    <Card title={t('dashboard.connection')}>
+      <div className="flex flex-col gap-4">
+        {LIVE_PLATFORMS.map((p) => (
+          <PlatformConnection key={p} platform={p} now={now} />
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-slate-500">{t('dashboard.multistream')}</p>
+    </Card>
+  );
+}
+
+function PlatformConnection({ platform, now }: { platform: LivePlatform; now: number }) {
+  const { t } = useTranslation();
+  const connection = useStore((s) => s.connection[platform]);
+  const settings = useStore((s) => s.settings);
+  const [channel, setChannel] = useState(
+    (platform === 'kick' ? settings?.kickChannel : settings?.tiktokUsername) ?? '',
+  );
+  const [connect, connecting] = useAction((c: string) => api.connection.connect(platform, c));
+  const [disconnect] = useAction(() => api.connection.disconnect(platform));
   const active = connection.status !== 'idle' && connection.status !== 'error';
 
   return (
-    <Card title={t('dashboard.connection')} actions={<StatusBadge status={connection.status} />}>
+    <div>
       <form
         className="flex items-end gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!active) void connect(username);
+          if (!active) void connect(channel);
         }}
       >
-        <Field label={t('dashboard.username')} className="flex-1">
+        <Field label={`${PLATFORM_ICON[platform]} ${t(`dashboard.platform.${platform}`)}`} className="flex-1">
           <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder={t('dashboard.usernamePlaceholder')}
+            value={channel}
+            onChange={(e) => setChannel(e.target.value)}
+            placeholder={t(`dashboard.placeholder.${platform}`)}
             disabled={active}
           />
         </Field>
+        <div className="pb-2">
+          <StatusBadge status={connection.status} />
+        </div>
         {active ? (
           <Button variant="secondary" onClick={() => void disconnect()}>
             {t('dashboard.disconnect')}
           </Button>
         ) : (
-          <Button type="submit" variant="primary" disabled={connecting || !username.trim()}>
+          <Button type="submit" variant="primary" disabled={connecting || !channel.trim()}>
             {t('dashboard.connect')}
           </Button>
         )}
       </form>
       {(connection.detail || connection.retryAt) && (
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-slate-400">
           {connection.detail}
           {connection.retryAt && connection.retryAt > now && (
             <> — {t('dashboard.retryIn', { s: Math.ceil((connection.retryAt - now) / 1000) })}</>
           )}
         </p>
       )}
-    </Card>
+    </div>
   );
 }
 

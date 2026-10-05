@@ -22,6 +22,11 @@ export interface ConnectionInfo {
   retryAt?: number;
 }
 
+/** Live platforms the app can connect to (both can be live at the same time). */
+export type LivePlatform = 'tiktok' | 'kick';
+export const LIVE_PLATFORMS: readonly LivePlatform[] = ['tiktok', 'kick'];
+export type Connections = Record<LivePlatform, ConnectionInfo>;
+
 export interface SessionInfo {
   sessionId: string | null;
   channel: string | null;
@@ -34,6 +39,7 @@ export interface SessionInfo {
 export interface AppSettings {
   language: 'fr' | 'en';
   tiktokUsername: string;
+  kickChannel: string;
   hasSignApiKey: boolean;
   streakMode: 'end' | 'repeat';
   serverPort: number;
@@ -135,9 +141,9 @@ export interface DesktopApi {
     info(): Promise<{ version: string; dataDir: string; serverOrigin: string }>;
   };
   connection: {
-    get(): Promise<ConnectionInfo>;
-    connect(username: string): Promise<void>;
-    disconnect(): Promise<void>;
+    get(): Promise<Connections>;
+    connect(platform: LivePlatform, channel: string): Promise<void>;
+    disconnect(platform: LivePlatform): Promise<void>;
   };
   session: {
     get(): Promise<SessionInfo>;
@@ -275,7 +281,7 @@ export interface HomeGameDto {
 
 /** Push channels main -> renderer. */
 export interface PushEvents {
-  connection: ConnectionInfo;
+  connection: { platform: LivePlatform; info: ConnectionInfo };
   session: SessionInfo;
   journal: JournalEntry[];
   integrations: void;

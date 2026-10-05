@@ -184,6 +184,22 @@ describe('filters & cooldowns', () => {
     expect(passesUserFilter(f, undefined)).toBe(false);
   });
 
+  it('restricts actions to platforms (simulated events always pass)', async () => {
+    const h = harness();
+    h.engine.setActions([action({ id: 'k', trigger: { kind: 'follow' }, platforms: ['kick'] })]);
+    const follow = (platform: LiveEvent['platform']): LiveEvent => ({
+      ...base(),
+      platform,
+      type: 'follow',
+      user: user(),
+    });
+    h.engine.handleEvent(follow('tiktok'));
+    h.engine.handleEvent(follow('kick'));
+    h.engine.handleEvent(follow('simulator'));
+    await vi.runAllTimersAsync();
+    expect(h.calls).toHaveLength(2);
+  });
+
   it('enforces global and per-user cooldowns', async () => {
     const h = harness();
     h.engine.setActions([

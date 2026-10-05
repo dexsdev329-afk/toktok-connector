@@ -8,7 +8,7 @@ import {
   type LiveEvent,
   type TemplateContext,
 } from '@toktok/shared';
-import { MatchState, matchAction, passesUserFilter } from './matcher';
+import { MatchState, matchAction, passesPlatformFilter, passesUserFilter } from './matcher';
 
 export interface EffectRunner {
   run(effect: Effect, ctx: TemplateContext, signal: AbortSignal): Promise<void>;
@@ -113,6 +113,7 @@ export class ActionEngine {
   handleEvent(event: LiveEvent): void {
     for (const action of this.actions) {
       if (!action.enabled) continue;
+      if (!passesPlatformFilter(action, event)) continue;
       const match = matchAction(action, event, this.state);
       if (match.units < 1) continue;
       const user = hasUser(event) ? event.user : undefined;
