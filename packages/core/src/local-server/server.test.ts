@@ -145,7 +145,7 @@ describe('OverlayFeeder', () => {
 
   it('shows one alert per streak with its total, above the threshold', () => {
     const { sent, feeder } = setup();
-    const g = (count: number, final: boolean): LiveEvent => ({
+    const g = (count: number, final: boolean): Extract<LiveEvent, { type: 'gift' }> => ({
       id: Math.random().toString(),
       platform: 'simulator',
       timestamp: 0,

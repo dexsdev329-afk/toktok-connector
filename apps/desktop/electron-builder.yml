@@ -1,0 +1,38 @@
+appId: com.anonymeagency.toktokgameconnector
+productName: TokTok Game Connector Live
+copyright: Copyright © 2026 Anonyme Agency
+directories:
+  output: release/${version}
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.{map,ts,tsx}'
+extraResources:
+  - from: ../overlays/dist
+    to: overlays
+  - from: ../../THIRD_PARTY_LICENSES.md
+    to: THIRD_PARTY_LICENSES.md
+asarUnpack:
+  - '**/*.node'
+# better-sqlite3 13 and robotjs ship N-API prebuilds: no Electron-specific rebuild needed.
+npmRebuild: false
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: TokTok-Game-Connector-Live-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: TokTok Game Connector Live
+  uninstallDisplayName: TokTok Game Connector Live
+  deleteAppDataOnUninstall: false
+# Auto-update (phase 3) will publish to GitHub Releases:
+publish:
+  provider: github
+  owner: dexsdev329-afk
+  repo: toktok-connector

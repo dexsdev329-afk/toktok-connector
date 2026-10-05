@@ -28,6 +28,8 @@ export function App() {
     }
   }, []);
   useOverlaySocket(onMessage);
+  // Stable callback: the alert timer must not restart when new alerts are queued.
+  const onAlertDone = useCallback((id: string) => setAlerts((q) => q.filter((a) => a.id !== id)), []);
 
   if (!config) return null;
   const s = config.style;
@@ -40,13 +42,7 @@ export function App() {
 
   return (
     <div className={`overlay theme-${s.theme} anim-${s.animation}`} style={vars}>
-      {config.kind === 'alerts' && (
-        <Alerts
-          options={config.options}
-          queue={alerts}
-          onDone={(id) => setAlerts((q) => q.filter((a) => a.id !== id))}
-        />
-      )}
+      {config.kind === 'alerts' && <Alerts options={config.options} queue={alerts} onDone={onAlertDone} />}
       {config.kind === 'top-donors' && <TopDonors options={config.options} donors={donors} />}
       {config.kind === 'like-goal' && (
         <LikeGoal options={config.options} total={likes.total} goal={likes.goal} />

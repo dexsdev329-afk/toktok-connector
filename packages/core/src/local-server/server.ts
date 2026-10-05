@@ -33,6 +33,8 @@ export interface LocalServerOptions {
   apiToken: () => string;
   /** Manual action trigger from the local API. Returns false when unknown. */
   triggerAction?: (actionId: string) => boolean;
+  /** Resolves a cached gift image file (public, no token needed). */
+  giftImagePath?: (giftId: string) => string | null;
 }
 
 const MIME: Record<string, string> = {
@@ -169,6 +171,16 @@ export class LocalServer {
       const file = path.resolve(root, ...parts.slice(1).map((p) => decodeURIComponent(p)));
       if (!file.startsWith(root + path.sep)) return this.send(res, 404, 'Introuvable');
       return this.serveFile(res, file, { 'Cache-Control': 'public, max-age=3600' });
+    }
+
+    if (req.method === 'GET' && parts[0] === 'gift-img' && parts.length === 2) {
+      const file = this.opts.giftImagePath?.(decodeURIComponent(parts[1]!)) ?? null;
+      if (!file) return this.send(res, 404, 'Introuvable');
+      return this.serveFile(res, file, {
+        'Cache-Control': 'public, max-age=86400',
+        'Content-Type': 'image/webp',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      });
     }
 
     if (parts[0] === 'api') return this.handleApi(req, res, parts.slice(1));

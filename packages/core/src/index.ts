@@ -14,3 +14,4 @@ export * from './stats/session-tracker';
 export * from './entitlements';
 export * from './local-server/server';
 export * from './local-server/overlay-feeder';
+export * from './gifts/image-cache';

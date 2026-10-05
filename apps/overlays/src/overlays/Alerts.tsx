@@ -24,7 +24,7 @@ export function Alerts(props: {
     if (!current) return;
     const t = setTimeout(() => onDone(current.id), opts.durationMs);
     return () => clearTimeout(t);
-  }, [current, opts.durationMs, onDone]);
+  }, [current?.id, opts.durationMs, onDone]);
 
   if (!current) return null;
   return (

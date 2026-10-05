@@ -133,9 +133,16 @@ export class TikTokConnector extends BaseConnector {
     this.setStatus({ status: 'idle', channel: this.channel });
   }
 
-  async fetchGifts(): Promise<GiftInfo[]> {
-    const username = this.channel;
-    const client = this.client ?? (username ? this.opts.createClient(username, this.clientOptions()) : null);
+  /** Updates the sign server API key used for the next connections. */
+  setSignApiKey(key: string | undefined): void {
+    if (key) this.opts.signApiKey = key;
+    else delete this.opts.signApiKey;
+  }
+
+  /** Fetches the gift catalog (works without being connected when a username is given). */
+  async fetchGifts(username?: string): Promise<GiftInfo[]> {
+    const name = username ? normalizeUsername(username) : this.channel;
+    const client = this.client ?? (name ? this.opts.createClient(name, this.clientOptions()) : null);
     if (!client?.fetchAvailableGifts) return [];
     return mapGiftList(await client.fetchAvailableGifts());
   }
