@@ -111,6 +111,7 @@ export class AppCore {
     this.integrations = new IntegrationManager({
       log: (level, message) => this.system(level, message),
       input: opts.input,
+      statusChanged: () => opts.push.integrations(),
     });
 
     this.engine = new ActionEngine({

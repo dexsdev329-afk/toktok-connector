@@ -54,6 +54,8 @@ export interface IntegrationStatus {
 }
 
 export interface Integration {
+  /** Server-type integrations (the game connects to us) are started as soon as they are enabled. */
+  readonly autoStart?: boolean;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   status(): IntegrationStatus;
@@ -65,6 +67,8 @@ export interface Integration {
 export interface IntegrationDeps {
   log: (level: 'info' | 'warn' | 'error', message: string) => void;
   input?: InputDriver;
+  /** Notifies the host that status() changed on its own (e.g. the game connected). */
+  statusChanged?: () => void;
 }
 
 export interface IntegrationDefinition<C = Record<string, unknown>> {

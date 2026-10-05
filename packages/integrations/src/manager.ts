@@ -1,5 +1,6 @@
 import type { Effect, TemplateContext } from '@toktok/shared';
 import { inputDefinition } from './input/input-integration';
+import { minecraftBedrockDefinition } from './minecraft-bedrock/minecraft-bedrock';
 import { minecraftRconDefinition } from './minecraft-rcon/minecraft-rcon';
 import {
   IntegrationError,
@@ -10,7 +11,11 @@ import {
 } from './sdk';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const BUILTIN_DEFINITIONS: IntegrationDefinition<any>[] = [minecraftRconDefinition, inputDefinition];
+export const BUILTIN_DEFINITIONS: IntegrationDefinition<any>[] = [
+  minecraftRconDefinition,
+  minecraftBedrockDefinition,
+  inputDefinition,
+];
 
 export interface IntegrationInstanceConfig {
   id: string;
@@ -50,7 +55,13 @@ export class IntegrationManager {
     const parsed = def.configSchema.parse(cfg.config);
     await this.remove(cfg.id);
     if (!cfg.enabled) return;
-    this.instances.set(cfg.id, { cfg, impl: def.create(parsed, this.deps) });
+    const impl = def.create(parsed, this.deps);
+    this.instances.set(cfg.id, { cfg, impl });
+    if (impl.autoStart) {
+      await impl.connect().catch((err: unknown) => {
+        this.deps.log('warn', `${cfg.name} : ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
   }
 
   async remove(id: string): Promise<void> {

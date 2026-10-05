@@ -159,6 +159,12 @@ const fr = {
       version: 'Version de Minecraft',
       playerHelp: 'Utilisé par {player} dans les commandes (sinon @a).',
     },
+    bedrock: {
+      port: 'Port local',
+      player: 'Ton pseudo Bedrock (facultatif)',
+      playerHelp: 'Vide = le joueur qui a tapé /connect.',
+      logChat: 'Afficher le chat du jeu dans le journal',
+    },
     input: {
       stepDelay: 'Pause entre deux étapes (ms)',
     },

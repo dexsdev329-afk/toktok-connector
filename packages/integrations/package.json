@@ -12,6 +12,10 @@
   "dependencies": {
     "@toktok/shared": "workspace:*",
     "rcon-client": "^4.2.5",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2"
   }
 }

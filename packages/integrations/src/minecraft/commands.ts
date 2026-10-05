@@ -428,10 +428,11 @@ export function safeText(s: string, max = 80): string {
   return s.replace(UNSAFE_TEXT, '').trim().slice(0, max);
 }
 
-/** Player target: a name (validated) or @a. Bedrock names with spaces must be quoted. */
+/** Player target: a name (validated), @a (Java) or @s (Bedrock). Bedrock names with spaces are quoted. */
 export function playerTarget(player: string, edition: MinecraftEdition): string {
   const p = player.trim();
-  if (!p) return '@a';
+  // Bedrock commands run as the player who typed /connect: @s is the streamer.
+  if (!p) return edition === 'bedrock' ? '@s' : '@a';
   if (edition === 'bedrock') {
     const clean = safeText(p, 32);
     return /\s/.test(clean) ? `"${clean}"` : clean;

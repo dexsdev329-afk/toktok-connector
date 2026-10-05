@@ -161,6 +161,12 @@ const en: Dict = {
       version: 'Minecraft version',
       playerHelp: 'Used by {player} in commands (otherwise @a).',
     },
+    bedrock: {
+      port: 'Local port',
+      player: 'Your Bedrock gamertag (optional)',
+      playerHelp: 'Empty = the player who typed /connect.',
+      logChat: 'Show in-game chat in the log',
+    },
     input: {
       stepDelay: 'Pause between steps (ms)',
     },
