@@ -29,8 +29,8 @@ Relais WebSocket entre **TokTok Game Connector Live** (rôle `publisher`) et tes
 ## Déploiement sur Railway
 
 1. Crée un nouveau projet, puis un service relié à ce dépôt GitHub.
-2. Dans _Settings → Root Directory_, indique `apps/rooms-server`. `railway.json` fournit les commandes de
-   build et de démarrage, ainsi que le healthcheck `/health`.
+2. Dans _Settings_, règle : Root Directory `apps/rooms-server`, Build `npm install --include=dev && npm run build`,
+   Start `npm start`, Healthcheck `/health`. Ces réglages sont déjà appliqués sur le projet `toktok-rooms`.
 3. Ajoute un volume monté sur `/data`, les variables `DATA_DIR=/data` et `ADMIN_TOKEN`, puis génère un
    domaine public.
 4. Dans l'app, onglet **Intégrations**, ajoute **Serveur de salles** avec `wss://<ton-domaine>`, le numéro de
