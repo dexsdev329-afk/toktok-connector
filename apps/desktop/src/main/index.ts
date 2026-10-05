@@ -5,12 +5,14 @@ import type { PushEvents } from '../shared/api';
 import { AppCore } from './app-core';
 import { registerIpc } from './ipc';
 import { Updater } from './updater';
+import { MinecraftServerManager, type ServerSettings } from './minecraft-server';
 import { configureSafeStorageForDev, loadGamepadDriver, loadInputDriver, safeStorageCipher } from './native';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | null = null;
 let core: AppCore | null = null;
 let updater: Updater | null = null;
+let minecraft: MinecraftServerManager | null = null;
 
 function log(level: 'info' | 'warn' | 'error', message: string): void {
   const line = `[${new Date().toISOString()}] ${level.toUpperCase()} ${message}`;
@@ -100,7 +102,28 @@ if (!app.requestSingleInstanceLock()) {
       },
     });
     updater = new Updater(core.repos.settings, (s) => push('updates', s), log);
-    registerIpc(core, updater, () => mainWindow);
+    const appCore = core;
+    minecraft = new MinecraftServerManager({
+      dir: path.join(app.getPath('userData'), 'minecraft-server'),
+      // The RCON password lives in the encrypted secrets store, the rest in plain settings.
+      load: () => {
+        const s = appCore.repos.settings.get<ServerSettings>('minecraft.server', {});
+        const rconPassword = appCore.repos.secrets.get('minecraft.server.rconPassword');
+        return rconPassword ? { ...s, rconPassword } : s;
+      },
+      save: ({ rconPassword, ...rest }) => {
+        if (rconPassword) appCore.repos.secrets.set('minecraft.server.rconPassword', rconPassword);
+        appCore.repos.settings.set('minecraft.server', rest);
+      },
+      push: (s) => push('minecraft', s),
+      log: (level, message) => appCore.system(level, message),
+      onReady: async (rcon) => {
+        const version = appCore.repos.settings.get<ServerSettings>('minecraft.server', {}).version ?? '';
+        await appCore.setupManagedMinecraft(rcon, version);
+        push('integrations', undefined);
+      },
+    });
+    registerIpc(core, updater, minecraft, () => mainWindow);
     await core.start();
     updater.start();
     log('info', `Serveur local : ${core.server.port ? core.server.origin : 'indisponible'}`);
@@ -121,8 +144,10 @@ if (!app.requestSingleInstanceLock()) {
     e.preventDefault();
     quitting = true;
     updater?.stop();
-    core
-      .stop()
+    // Save the Minecraft world before quitting.
+    const stopping = minecraft?.stop().catch(() => undefined);
+    Promise.resolve(stopping)
+      .then(() => core?.stop())
       .catch((err: unknown) => log('error', String(err)))
       .finally(() => app.quit());
   });

@@ -577,6 +577,81 @@ export class AppCore {
     return profile;
   }
 
+  // ---------------------------------------------------------------- Minecraft en 1 clic
+
+  /**
+   * Called when the app-managed Minecraft server is ready: creates (or updates) its RCON
+   * integration and, the first time, the ready-made gift profile, then activates it.
+   */
+  async setupManagedMinecraft(rcon: { port: number; password: string }, version: string): Promise<string> {
+    const existing = this.repos.settings.get<string>('minecraft.managedIntegrationId', '');
+    const saved = await this.saveIntegration({
+      ...(existing && this.repos.integrations.get(existing) ? { id: existing } : {}),
+      kind: 'minecraft-rcon',
+      name: 'Minecraft (mon serveur)',
+      enabled: true,
+      config: {
+        host: '127.0.0.1',
+        port: rcon.port,
+        password: rcon.password,
+        player: '',
+        version: isLegacyJava(version) ? 'java-legacy' : 'java',
+      },
+    });
+    this.repos.settings.set('minecraft.managedIntegrationId', saved.id);
+    this.ensureMinecraftProfile(saved.id, 'minecraft.managedProfileId');
+    // Connect right away so the integration shows "connected" instead of waiting for a gift.
+    await this.testIntegration(saved.id);
+    this.opts.push.integrations();
+    return saved.id;
+  }
+
+  async setupBedrock(): Promise<{ command: string; integrationId: string }> {
+    let rec = this.repos.integrations.list().find((i) => i.kind === 'minecraft-bedrock');
+    if (!rec) {
+      const saved = await this.saveIntegration({
+        kind: 'minecraft-bedrock',
+        name: 'Minecraft Bedrock',
+        enabled: true,
+        config: {},
+      });
+      rec = this.repos.integrations.get(saved.id)!;
+    } else if (!rec.enabled) {
+      await this.saveIntegration({ ...rec, enabled: true, config: { ...rec.config } });
+    }
+    this.ensureMinecraftProfile(rec.id, 'minecraft.bedrockProfileId');
+    const port = Number(rec.config.port ?? 19135) || 19135;
+    return { command: `/connect localhost:${port}`, integrationId: rec.id };
+  }
+
+  /** Creates the gift profile once for an integration and makes it the active profile. */
+  private ensureMinecraftProfile(integrationId: string, key: string): void {
+    let profileId = this.repos.settings.get<string>(key, '');
+    if (!profileId || !this.repos.profiles.get(profileId)) {
+      profileId = this.createMinecraftPack(integrationId).id;
+      this.repos.settings.set(key, profileId);
+      this.system('info', 'Profil « Minecraft » créé : les cadeaux sont déjà reliés aux effets');
+    }
+    this.repos.profiles.setActive(profileId);
+    this.reloadActions();
+  }
+
+  async testMinecraft(edition: 'java' | 'bedrock'): Promise<void> {
+    const id =
+      edition === 'java'
+        ? this.repos.settings.get<string>('minecraft.managedIntegrationId', '')
+        : (this.repos.integrations.list().find((i) => i.kind === 'minecraft-bedrock')?.id ?? '');
+    if (!id) throw new Error('Minecraft n’est pas encore configuré');
+    await this.testEffect({
+      integrationId: id,
+      effectId: 'mc.summon',
+      params: { mob: 'zombie', amount: 1, distance: 3, nameTag: '{username}' },
+      delayMs: 0,
+      repeat: 1,
+      repeatIntervalMs: 0,
+    });
+  }
+
   private sampleGiftEvent(): LiveEvent {
     return {
       id: makeId('test'),
@@ -872,4 +947,13 @@ export class AppCore {
     });
     s.set(SETTINGS.initialized, true);
   }
+}
+
+/** Minecraft Java before 1.21.5 uses JSON text components (newer versions use SNBT). */
+export function isLegacyJava(version: string): boolean {
+  const m = /^1\.(\d+)(?:\.(\d+))?$/.exec(version);
+  if (!m) return false;
+  const minor = Number(m[1]);
+  const patch = Number(m[2] ?? 0);
+  return minor < 21 || (minor === 21 && patch < 5);
 }

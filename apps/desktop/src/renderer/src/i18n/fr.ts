@@ -1,6 +1,7 @@
 const fr = {
   nav: {
     dashboard: 'Tableau de bord',
+    minecraft: 'Minecraft',
     actions: 'Actions',
     integrations: 'Intégrations',
     overlays: 'Overlays',
@@ -519,6 +520,64 @@ const fr = {
   chaos: {
     port: 'Port du WebSocket de debug',
     effect: 'Effet Chaos',
+  },
+  minecraft: {
+    intro:
+      'Choisis ta version de Minecraft. L’app s’occupe de tout : aucun fichier à modifier, les cadeaux sont déjà reliés aux effets (zombies, TNT, potions…).',
+    java: {
+      title: 'Minecraft Java Edition',
+      who: 'Sur PC, avec le launcher Minecraft. L’app crée ton propre serveur en un clic.',
+      cardTitle: 'Ton serveur Minecraft en 1 clic',
+      step1: 'Installer le serveur',
+      step1Help:
+        'L’app télécharge Java et le serveur officiel de Minecraft (Mojang), puis configure tout. Environ 150 Mo, une seule fois.',
+      version: 'Version :',
+      latest: 'la plus récente',
+      versionHelp: 'Prends la même version que ton jeu Minecraft.',
+      eula: 'J’accepte le contrat de licence de Minecraft (obligatoire pour lancer un serveur) :',
+      eulaLink: 'lire le CLUF',
+      install: 'Installer et lancer mon serveur',
+      installed: 'Serveur Minecraft {{version}} installé.',
+      step2: 'Lancer le serveur',
+      start: 'Lancer le serveur',
+      stop: 'Arrêter (sauvegarde le monde)',
+      folder: 'Ouvrir le dossier du monde',
+      firstStart: 'Le premier lancement crée le monde : compte environ une minute.',
+      step3: 'Rejoindre ton serveur dans Minecraft',
+      step3Help:
+        'Ouvre Minecraft Java → Multijoueur → Ajouter un serveur → colle cette adresse → Rejoindre le serveur.',
+      players: 'Connecté(s) : {{names}}',
+      noPlayers: 'Personne n’est encore connecté.',
+      step4: 'C’est prêt !',
+      step4Help:
+        'Le profil « Minecraft » est actif : une Rose fait apparaître un zombie à ton nom, les gros cadeaux lancent des boss, la TNT… Change tout dans Actions.',
+      console: 'Console du serveur',
+    },
+    bedrock: {
+      title: 'Minecraft Bedrock',
+      who: 'Version Windows 10/11 (Microsoft Store, Xbox Game Pass). Aucun serveur à installer.',
+      cardTitle: 'Minecraft Bedrock en 3 étapes',
+      step1: 'Préparer l’app',
+      step1Help: 'Un clic : l’app ouvre la connexion pour Minecraft et active le profil de cadeaux.',
+      prepare: 'Préparer Minecraft Bedrock',
+      step2: 'Dans les paramètres de ton monde',
+      cheats: 'Active « Activer les commandes » (triche).',
+      websockets: 'Paramètres → Général : désactive « Websockets chiffrés obligatoires ».',
+      step3: 'Dans le chat du jeu',
+      step3Help: 'Ouvre le chat (touche T), colle cette commande et valide :',
+      afterStep1: 'La commande apparaît après l’étape 1.',
+    },
+    status: {
+      'not-installed': 'Pas installé',
+      installing: 'Installation…',
+      stopped: 'Arrêté',
+      starting: 'Démarrage…',
+      running: 'En ligne',
+      stopping: 'Arrêt…',
+      error: 'Erreur',
+    },
+    testZombie: 'Tester : faire apparaître un zombie',
+    testSent: 'Zombie envoyé dans le jeu',
   },
   journal: {
     filterAll: 'Tout',

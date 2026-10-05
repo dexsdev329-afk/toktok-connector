@@ -11,11 +11,13 @@ import { DashboardPage } from './pages/DashboardPage';
 import { HomeGamesPage } from './pages/HomeGamesPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { JournalPage } from './pages/JournalPage';
+import { MinecraftPage } from './pages/MinecraftPage';
 import { OverlaysPage } from './pages/OverlaysPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const PAGES = {
   dashboard: { icon: '◉', component: DashboardPage },
+  minecraft: { icon: '⛏', component: MinecraftPage },
   actions: { icon: '⚡', component: ActionsPage },
   integrations: { icon: '🎮', component: IntegrationsPage },
   overlays: { icon: '▣', component: OverlaysPage },

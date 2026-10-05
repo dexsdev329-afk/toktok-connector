@@ -101,7 +101,16 @@ qu'elle ne comprend plus au lieu de planter.
 
 ### 2. Minecraft
 
-**Le plus rapide** : ajoute une intégration Minecraft (Java ou Bedrock), puis dans l'onglet **Actions**
+**En 1 clic (recommandé)** : menu **⛏ Minecraft** de l'app.
+
+- **Java** : accepte le contrat de licence de Minecraft, puis « Installer et lancer mon serveur ». L'app
+  télécharge Java (Eclipse Temurin, via l'API Adoptium) et le `server.jar` officiel de Mojang (somme SHA-1
+  vérifiée), écrit `server.properties` (RCON sur 127.0.0.1, mot de passe aléatoire chiffré), démarre le
+  serveur, crée l'intégration et active le pack Minecraft. Dans Minecraft : Multijoueur → `localhost`.
+  Rien n'est redistribué : tout est téléchargé chez l'éditeur, et `eula=true` n'est écrit qu'après ton accord.
+- **Bedrock** : « Préparer Minecraft Bedrock », puis colle `/connect localhost:19135` dans le chat du jeu.
+
+**À la main** : ajoute une intégration Minecraft (Java ou Bedrock), puis dans l'onglet **Actions**
 clique sur **🧱 Pack Minecraft**. Ça crée un profil prêt à l'emploi : zombies nommés pour les petits cadeaux
 (1–9 💎), creeper (10–98 💎), pluie de TNT (99–499 💎), boss (500 💎 et plus), titres pour les follows, vitesse
 tous les 500 likes, commandes `!heal` et `!nuit` (`!nuit` réservée aux modos). Active le profil, c'est prêt.

@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
 import type { AppCore } from './app-core';
 import type { Updater } from './updater';
+import type { MinecraftServerManager } from './minecraft-server';
 
 const id = z.string().min(1).max(100);
 const platformSchema = z.enum(['tiktok', 'kick']);
@@ -93,7 +94,12 @@ type Handlers = { [N in keyof DesktopApi]: { [M in keyof DesktopApi[N]]: (...arg
  * Registers the single "api" invoke channel. Arguments are validated with zod
  * before reaching the core; only the main window may call it.
  */
-export function registerIpc(core: AppCore, updater: Updater, getWindow: () => BrowserWindow | null): void {
+export function registerIpc(
+  core: AppCore,
+  updater: Updater,
+  minecraft: MinecraftServerManager,
+  getWindow: () => BrowserWindow | null,
+): void {
   const handlers = {
     app: {
       info: () => ({
@@ -258,6 +264,30 @@ export function registerIpc(core: AppCore, updater: Updater, getWindow: () => Br
         if (!o || !core.server.port) throw new Error('Overlay indisponible');
         await shell.openExternal(core.server.overlayUrl(o));
       },
+    },
+    minecraft: {
+      server: () => minecraft.get(),
+      versions: () => minecraft.versions(),
+      install: (version: unknown, accept: unknown) =>
+        minecraft.install(
+          z
+            .string()
+            .regex(/^[\w.-]{1,32}$/)
+            .parse(version),
+          z.literal(true, { error: 'Il faut accepter le CLUF de Minecraft' }).parse(accept),
+        ),
+      start: () => minecraft.start(),
+      stop: () => minecraft.stop(),
+      openFolder: async () => {
+        await shell.openPath(minecraft.folder());
+      },
+      address: () => {
+        const port =
+          core.repos.settings.get<{ serverPort?: number }>('minecraft.server', {}).serverPort ?? 25565;
+        return port === 25565 ? 'localhost' : `localhost:${port}`;
+      },
+      setupBedrock: () => core.setupBedrock(),
+      test: (edition: unknown) => core.testMinecraft(z.enum(['java', 'bedrock']).parse(edition)),
     },
     updates: {
       get: () => updater.get(),

@@ -206,6 +206,20 @@ export interface DesktopApi {
       seconds?: number,
     ): Promise<void>;
   };
+  minecraft: {
+    server(): Promise<MinecraftServerState>;
+    versions(): Promise<{ latest: string; versions: string[] }>;
+    install(version: string, acceptEula: boolean): Promise<void>;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    openFolder(): Promise<void>;
+    /** Address to type in Minecraft (Multiplayer -> Add server). */
+    address(): Promise<string>;
+    /** Creates (once) the Bedrock integration and its gift profile; returns the /connect command. */
+    setupBedrock(): Promise<{ command: string; integrationId: string }>;
+    /** Spawns a test zombie through the configured integration. */
+    test(edition: 'java' | 'bedrock'): Promise<void>;
+  };
   updates: {
     get(): Promise<UpdateState>;
     check(): Promise<UpdateState>;
@@ -260,6 +274,20 @@ export interface DesktopApi {
     update(patch: SettingsPatch): Promise<AppSettings>;
     regenerateApiToken(): Promise<AppSettings>;
   };
+}
+
+/** Personal Minecraft Java server managed by the app ("Minecraft en 1 clic"). */
+export interface MinecraftServerState {
+  status: 'not-installed' | 'installing' | 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+  version: string | null;
+  /** Current step and progress while installing / starting. */
+  step?: string;
+  percent?: number;
+  error?: string;
+  /** Players currently connected. */
+  players: string[];
+  /** Last console lines. */
+  logs: string[];
 }
 
 export interface UpdateState {
@@ -323,6 +351,7 @@ export interface PushEvents {
   integrations: void;
   media: MediaRequest;
   updates: UpdateState;
+  minecraft: MinecraftServerState;
 }
 
 export type ApiNamespace = keyof DesktopApi;
