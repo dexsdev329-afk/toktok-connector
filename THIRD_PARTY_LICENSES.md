@@ -46,6 +46,7 @@ facultative peut être renseignée dans les réglages.
 | type-fest                                                          | MIT OR CC0-1.0                                                                     |
 | node-addon-api, node-gyp-build                                     | MIT                                                                                |
 | obscenity (filtre anti-insultes anglais)                           | MIT                                                                                |
+| vigemclient (dépendance optionnelle, Windows)                      | MIT                                                                                |
 
 ## Données
 

@@ -159,6 +159,21 @@ web hébergés sur Railway.
 connecte via l'intégration **Serveur de salles** ; tes jeux web (Three.js…) le rejoignent avec un petit
 script, `toktok-room-client.js`. Le déploiement est décrit dans [apps/rooms-server](apps/rooms-server).
 
+### Jeux maison
+
+Onglet **Jeux maison** : ajoute un jeu web, soit par son URL (Railway…), soit par un dossier local contenant
+`index.html`. Le bouton **Ouvrir** lance le jeu dans une fenêtre isolée ; **URL pour OBS** donne un lien à
+coller comme source navigateur. Le jeu inclut `toktok-game-client.js` (servi par l'app), reçoit tous les
+événements du live, et peut recevoir des effets ciblés via l'intégration « Jeux maison ». C'est la même API
+que celle du serveur de salles : un même jeu fonctionne en local et via Railway.
+
+### Manette virtuelle (Windows)
+
+L'intégration **Manette virtuelle** crée une manette Xbox 360 ou DualShock 4 grâce au pilote **ViGEmBus 1.22**.
+Ce pilote est à installer soi-même : le projet est archivé et son installeur n'est pas redistribué. Les
+séquences s'écrivent comme ceci : `press a 200`, `stick left 0 1 1500`, `trigger right 1 400`,
+`dpad up 150`, `wait 300`. Les boutons sont toujours relâchés à la fin de la séquence.
+
 ### Sons & synthèse vocale
 
 Onglet **Sons & voix** :

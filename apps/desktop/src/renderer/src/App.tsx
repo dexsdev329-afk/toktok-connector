@@ -7,6 +7,7 @@ import { MediaPlayer } from './components/MediaPlayer';
 import { ActionsPage } from './pages/ActionsPage';
 import { AudioPage } from './pages/AudioPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { HomeGamesPage } from './pages/HomeGamesPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { JournalPage } from './pages/JournalPage';
 import { OverlaysPage } from './pages/OverlaysPage';
@@ -18,6 +19,7 @@ const PAGES = {
   integrations: { icon: '🎮', component: IntegrationsPage },
   overlays: { icon: '▣', component: OverlaysPage },
   audio: { icon: '🔊', component: AudioPage },
+  games: { icon: '🕹', component: HomeGamesPage },
   journal: { icon: '☰', component: JournalPage },
   settings: { icon: '⚙', component: SettingsPage },
 } as const;

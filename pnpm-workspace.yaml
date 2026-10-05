@@ -7,3 +7,4 @@ onlyBuiltDependencies:
   - electron
   - esbuild
   - '@jitsi/robotjs'
+  - vigemclient

@@ -199,6 +199,13 @@ export interface DesktopApi {
   media: {
     ended(id: string): Promise<void>;
   };
+  homeGames: {
+    list(): Promise<HomeGameDto[]>;
+    addUrl(name: string, url: string): Promise<HomeGameDto>;
+    addFolder(name: string): Promise<HomeGameDto | null>;
+    remove(id: string): Promise<void>;
+    open(id: string): Promise<void>;
+  };
   sounds: {
     list(): Promise<SoundDto[]>;
     importFiles(): Promise<SoundDto[]>;
@@ -254,6 +261,15 @@ export interface SoundDto {
   id: string;
   name: string;
   volume: number;
+}
+
+export interface HomeGameDto {
+  id: string;
+  name: string;
+  source: string;
+  /** URL with the private local WebSocket address (window / OBS). */
+  launchUrl: string;
+  connected: number;
 }
 
 /** Push channels main -> renderer. */

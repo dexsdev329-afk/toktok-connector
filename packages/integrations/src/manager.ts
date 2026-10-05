@@ -1,4 +1,5 @@
 import type { Effect, LiveEvent, TemplateContext } from '@toktok/shared';
+import { gamepadDefinition } from './gamepad/gamepad';
 import { inputDefinition } from './input/input-integration';
 import { minecraftBedrockDefinition } from './minecraft-bedrock/minecraft-bedrock';
 import { minecraftRconDefinition } from './minecraft-rcon/minecraft-rcon';
@@ -19,6 +20,7 @@ export const BUILTIN_DEFINITIONS: IntegrationDefinition<any>[] = [
   minecraftRconDefinition,
   minecraftBedrockDefinition,
   inputDefinition,
+  gamepadDefinition,
   modBridgeDefinition,
   webhookDefinition,
   roomsDefinition,
@@ -45,6 +47,11 @@ export class IntegrationManager {
     definitions: IntegrationDefinition<unknown>[] = BUILTIN_DEFINITIONS,
   ) {
     for (const d of definitions) this.definitions.set(d.kind, d);
+  }
+
+  /** Adds a host-provided integration type (e.g. home games, which need the app's server). */
+  register(definition: IntegrationDefinition<unknown>): void {
+    this.definitions.set(definition.kind, definition);
   }
 
   listDefinitions(): IntegrationDefinition<unknown>[] {

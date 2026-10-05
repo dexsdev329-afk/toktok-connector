@@ -7,6 +7,7 @@ const en: Dict = {
     integrations: 'Integrations',
     overlays: 'Overlays',
     audio: 'Sounds & voice',
+    games: 'Home games',
     journal: 'Log',
     settings: 'Settings',
   },
@@ -196,6 +197,7 @@ const en: Dict = {
       pin: 'Room PIN',
       forwardEvents: 'Send every live event to the games',
     },
+    gamepad: { controller: 'Controller type' },
     input: {
       stepDelay: 'Pause between steps (ms)',
     },
@@ -255,6 +257,22 @@ const en: Dict = {
     noSounds: 'No sound yet. Import mp3, wav or ogg files.',
   },
   rooms: { effect: 'Effect name', params: 'Parameters (JSON)' },
+  homeGames: {
+    game: 'Game (name, id or *)',
+    add: 'Add a game',
+    name: 'Name',
+    url: 'Game URL (Railway, other host…)',
+    or: 'or',
+    folder: 'Pick a local folder',
+    empty: 'No game yet. Add a hosted web game or a folder containing index.html.',
+    open: 'Open',
+    copyObs: 'URL for OBS',
+    howTo: 'Connect a game',
+    howToText: 'Add this script to the game page. It receives every live event (gifts, likes, chat…).',
+    howToEffects:
+      'Actions can also send specific effects with the “Home games” integration. Open the game from the app or paste the “URL for OBS”: it carries the private connection address.',
+  },
+  gamepad: { button: 'Button' },
   effects: {
     command: 'Command(s)',
     script: 'Script',

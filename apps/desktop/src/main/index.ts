@@ -4,7 +4,7 @@ import { app, BrowserWindow, session, shell } from 'electron';
 import type { PushEvents } from '../shared/api';
 import { AppCore } from './app-core';
 import { registerIpc } from './ipc';
-import { configureSafeStorageForDev, loadInputDriver, safeStorageCipher } from './native';
+import { configureSafeStorageForDev, loadGamepadDriver, loadInputDriver, safeStorageCipher } from './native';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let mainWindow: BrowserWindow | null = null;
@@ -87,6 +87,7 @@ if (!app.requestSingleInstanceLock()) {
       overlaysDir: overlaysDir(),
       cipher: safeStorageCipher,
       input: loadInputDriver((m) => log('warn', m)),
+      gamepad: loadGamepadDriver((m) => log('warn', m)),
       log,
       push: {
         connection: (info) => push('connection', info),

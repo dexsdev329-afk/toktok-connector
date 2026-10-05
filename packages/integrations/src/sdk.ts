@@ -1,5 +1,6 @@
 import type { Effect, LiveEvent, TemplateContext } from '@toktok/shared';
 import type { z } from 'zod';
+import type { GamepadDriver } from './gamepad/gamepad';
 import type { InputDriver } from './input/driver';
 
 /** A field of the generic configuration form shown in the app. */
@@ -71,6 +72,7 @@ export interface Integration {
 export interface IntegrationDeps {
   log: (level: 'info' | 'warn' | 'error', message: string) => void;
   input?: InputDriver;
+  gamepad?: GamepadDriver;
   /** Notifies the host that status() changed on its own (e.g. the game connected). */
   statusChanged?: () => void;
 }

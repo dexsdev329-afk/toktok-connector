@@ -5,6 +5,7 @@ const fr = {
     integrations: 'Intégrations',
     overlays: 'Overlays',
     audio: 'Sons & voix',
+    games: 'Jeux maison',
     journal: 'Journal',
     settings: 'Réglages',
   },
@@ -194,6 +195,7 @@ const fr = {
       pin: 'PIN de la salle',
       forwardEvents: 'Envoyer tous les événements du live aux jeux',
     },
+    gamepad: { controller: 'Type de manette' },
     input: {
       stepDelay: 'Pause entre deux étapes (ms)',
     },
@@ -363,6 +365,23 @@ const fr = {
     noSounds: 'Aucun son. Importe des fichiers mp3, wav ou ogg.',
   },
   rooms: { effect: 'Nom de l’effet', params: 'Paramètres (JSON)' },
+  homeGames: {
+    game: 'Jeu (nom, id ou *)',
+    add: 'Ajouter un jeu',
+    name: 'Nom',
+    url: 'URL du jeu (Railway, autre hébergeur…)',
+    or: 'ou',
+    folder: 'Choisir un dossier local',
+    empty: 'Aucun jeu. Ajoute un jeu web hébergé ou un dossier contenant index.html.',
+    open: 'Ouvrir',
+    copyObs: 'URL pour OBS',
+    howTo: 'Brancher un jeu',
+    howToText:
+      'Ajoute ce script à la page du jeu. Il reçoit tous les événements du live (cadeaux, likes, chat…).',
+    howToEffects:
+      'Les actions peuvent aussi envoyer des effets précis avec l’intégration « Jeux maison ». Ouvre le jeu depuis l’app ou colle l’« URL pour OBS » : elle contient l’adresse privée de connexion.',
+  },
+  gamepad: { button: 'Bouton' },
   effects: {
     command: 'Commande(s)',
     script: 'Script',

@@ -7,6 +7,7 @@ import {
   GiftImageCache,
   LocalServer,
   OverlayFeeder,
+  GAME_CLIENT_SCRIPT,
   SIMULATOR_GIFTS,
   TtsService,
   TtsSettingsSchema,
@@ -26,7 +27,14 @@ import {
   type TtsSettings,
 } from '@toktok/core';
 import { createTikTokClient } from '@toktok/core/tiktok-client';
-import { IntegrationManager, minecraftStarterPack, type InputDriver } from '@toktok/integrations';
+import {
+  IntegrationManager,
+  minecraftStarterPack,
+  type GamepadDriver,
+  type InputDriver,
+  type IntegrationDefinition,
+} from '@toktok/integrations';
+import { HomeGames, homeGamesDefinition } from './home-games';
 import {
   OverlayStyleSchema,
   contextFromEvent,
@@ -76,6 +84,7 @@ export interface AppCoreOptions {
   overlaysDir: string;
   cipher: SecretCipher;
   input: InputDriver | undefined;
+  gamepad?: GamepadDriver | undefined;
   log: (level: 'info' | 'warn' | 'error', message: string) => void;
   push: {
     connection(info: ConnectionInfo): void;
@@ -108,6 +117,7 @@ export class AppCore {
   readonly feeder: OverlayFeeder;
   readonly entitlements = unlockedEntitlements;
   readonly media: MediaBridge;
+  readonly homeGames: HomeGames;
   readonly tts: TtsService;
 
   private journalBuffer: JournalEntry[] = [];
@@ -127,6 +137,7 @@ export class AppCore {
     this.integrations = new IntegrationManager({
       log: (level, message) => this.system(level, message),
       input: opts.input,
+      ...(opts.gamepad ? { gamepad: opts.gamepad } : {}),
       statusChanged: () => opts.push.integrations(),
     });
 
@@ -174,7 +185,13 @@ export class AppCore {
       triggerAction: (id) => this.triggerActionById(id),
       giftImagePath: (id) => (this.images.has(id) ? this.images.filePath(id) : null),
       soundPath: (id) => this.repos.sounds.get(id)?.filePath ?? null,
+      getGame: (id) => this.homeGames.get(id),
+      onGameMessage: (id, data) =>
+        this.system('info', `[${this.homeGames.get(id)?.name ?? id}] ${JSON.stringify(data).slice(0, 200)}`),
+      gameClientScript: GAME_CLIENT_SCRIPT,
     });
+    this.homeGames = new HomeGames(this.repos.settings, this.server);
+    this.integrations.register(homeGamesDefinition(this.homeGames) as IntegrationDefinition<unknown>);
     this.feeder = new OverlayFeeder(
       () => this.repos.overlays.list(),
       this.tracker,
@@ -193,6 +210,9 @@ export class AppCore {
         'error',
         `Serveur local indisponible sur le port ${this.settings().serverPort} : ${String(err)}`,
       );
+    }
+    if (!this.repos.integrations.list().some((i) => i.kind === 'home-games')) {
+      this.repos.integrations.save({ kind: 'home-games', name: 'Jeux maison', enabled: true, config: {} });
     }
     for (const rec of this.repos.integrations.list()) {
       await this.integrations.upsert(this.withSecrets(rec)).catch((err: unknown) => {

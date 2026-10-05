@@ -18,12 +18,18 @@ writeFileSync(path.join(dir, 'assets', 'app.js'), 'console.log(1)');
 writeFileSync(path.join(dir, 'secret.txt'), 'nope');
 
 const triggered: string[] = [];
+const gameDir = mkdtempSync(path.join(tmpdir(), 'game-'));
+writeFileSync(path.join(gameDir, 'index.html'), '<html>my game</html>');
+const gameMessages: unknown[] = [];
 const server = new LocalServer({
   port: 0,
   overlaysDir: dir,
   getOverlay: (id) => (id === 'ov1' ? { id, token: 'tok-123' } : null),
   initialMessages: () => [{ type: 'likes', total: 1, goal: 10 }],
   apiToken: () => 'api-secret',
+  getGame: (id) => (id === 'g1' ? { id, token: 'game-tok', folder: gameDir } : null),
+  onGameMessage: (_id, data) => gameMessages.push(data),
+  gameClientScript: 'window.TokTokGame={}',
   triggerAction: (id) => {
     triggered.push(id);
     return id === 'a1';
@@ -102,6 +108,34 @@ describe('LocalServer', () => {
     expect((await ws('/ws/overlay?id=ov1&t=tok-123', server.origin)).ok).toBe(true);
     expect((await ws('/ws/overlay?id=ov1&t=tok-123', 'https://evil.example')).ok).toBe(false);
     expect((await ws('/ws/overlay?id=ov1&t=bad')).ok).toBe(false);
+  });
+});
+
+describe('home games', () => {
+  it('serves local game folders and the client script, without traversal', async () => {
+    expect((await http('GET', '/games/g1/')).body).toContain('my game');
+    expect((await http('GET', '/games/g1/..%2F..%2Fetc%2Fpasswd')).status).toBe(404);
+    expect((await http('GET', '/games/nope/')).status).toBe(404);
+    expect((await http('GET', '/toktok-game-client.js')).body).toContain('TokTokGame');
+  });
+
+  it('accepts game sockets from any origin with a valid token and relays both ways', async () => {
+    const url = `ws://127.0.0.1:${server.port}/ws/game?id=g1&t=game-tok`;
+    const sock = new WebSocket(url, { origin: 'https://my-game.up.railway.app' });
+    const got: unknown[] = [];
+    sock.on('message', (d) => got.push(JSON.parse(String(d))));
+    await new Promise((r) => sock.on('open', r));
+    server.sendToGame('*', { type: 'event', event: { type: 'like' } });
+    sock.send(JSON.stringify({ type: 'game', data: { score: 7 } }));
+    await new Promise((r) => setTimeout(r, 100));
+    expect(got).toEqual([
+      { type: 'welcome', game: 'g1' },
+      { type: 'event', event: { type: 'like' } },
+    ]);
+    expect(gameMessages).toEqual([{ score: 7 }]);
+    expect(server.gameConnectedCount('g1')).toBe(1);
+    sock.close();
+    expect((await ws('/ws/game?id=g1&t=wrong')).ok).toBe(false);
   });
 });
 

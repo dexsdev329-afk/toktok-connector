@@ -37,6 +37,12 @@ export interface LocalServerOptions {
   giftImagePath?: (giftId: string) => string | null;
   /** Resolves an imported sound file by id. */
   soundPath?: (soundId: string) => string | null;
+  /** Home games: access check (+ optional local folder served under /games/<id>/). */
+  getGame?: (id: string) => { id: string; token: string; folder?: string } | null;
+  /** Messages sent by a game page (forwarded to the app log). */
+  onGameMessage?: (gameId: string, data: unknown) => void;
+  /** Contents of the game client helper script. */
+  gameClientScript?: string;
 }
 
 const MIME: Record<string, string> = {
@@ -70,6 +76,7 @@ export class LocalServer {
   private server: Server | null = null;
   private readonly wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
   private readonly overlaySockets = new Map<string, Set<WebSocket>>();
+  private readonly gameSockets = new Map<string, Set<WebSocket>>();
   private actualPort = 0;
 
   constructor(private readonly opts: LocalServerOptions) {}
@@ -104,7 +111,8 @@ export class LocalServer {
   }
 
   async stop(): Promise<void> {
-    for (const set of this.overlaySockets.values()) for (const ws of set) ws.terminate();
+    for (const set of [...this.overlaySockets.values(), ...this.gameSockets.values()])
+      for (const ws of set) ws.terminate();
     this.overlaySockets.clear();
     const server = this.server;
     this.server = null;
@@ -117,6 +125,22 @@ export class LocalServer {
     if (!set) return;
     const data = JSON.stringify(msg);
     for (const ws of set) if (ws.readyState === ws.OPEN) ws.send(data);
+  }
+
+  /** Sends a message to every page of a home game ('*' = all games). */
+  sendToGame(gameId: string, msg: unknown): void {
+    const data = JSON.stringify(msg);
+    const targets =
+      gameId === '*' ? [...this.gameSockets.values()] : [this.gameSockets.get(gameId) ?? new Set()];
+    for (const set of targets) for (const ws of set) if (ws.readyState === ws.OPEN) ws.send(data);
+  }
+
+  gameConnectedCount(gameId: string): number {
+    return this.gameSockets.get(gameId)?.size ?? 0;
+  }
+
+  gameWsUrl(game: { id: string; token: string }): string {
+    return `ws://127.0.0.1:${this.actualPort}/ws/game?id=${encodeURIComponent(game.id)}&t=${encodeURIComponent(game.token)}`;
   }
 
   /** Closes the pages of an overlay (e.g. after its token was regenerated). */
@@ -193,6 +217,27 @@ export class LocalServer {
 
     if (parts[0] === 'api') return this.handleApi(req, res, parts.slice(1));
 
+    if (req.method === 'GET' && url.pathname === '/toktok-game-client.js' && this.opts.gameClientScript) {
+      res.writeHead(200, {
+        ...SECURITY_HEADERS,
+        'Content-Type': 'text/javascript; charset=utf-8',
+        // Loaded by game pages from any origin (local folder, Railway, file...).
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cache-Control': 'no-cache',
+      });
+      return void res.end(this.opts.gameClientScript);
+    }
+
+    if (req.method === 'GET' && parts[0] === 'games' && parts.length >= 2) {
+      const game = this.opts.getGame?.(decodeURIComponent(parts[1]!));
+      if (!game?.folder) return this.send(res, 404, 'Introuvable');
+      const root = path.resolve(game.folder);
+      const rel = parts.slice(2).map((p) => decodeURIComponent(p));
+      const file = path.resolve(root, ...(rel.length ? rel : ['index.html']));
+      if (file !== root && !file.startsWith(root + path.sep)) return this.send(res, 404, 'Introuvable');
+      return this.serveFile(res, file, { 'Cache-Control': 'no-cache' });
+    }
+
     if (req.method === 'GET' && url.pathname === '/health') return this.send(res, 200, 'ok');
     return this.send(res, 404, 'Introuvable');
   }
@@ -214,8 +259,10 @@ export class LocalServer {
       socket.write(`HTTP/1.1 ${code} Forbidden\r\nConnection: close\r\n\r\n`);
       socket.destroy();
     };
-    if (!this.hostOk(req) || !this.originOk(req)) return reject(403);
+    if (!this.hostOk(req)) return reject(403);
     const url = new URL(req.url ?? '/', this.origin);
+    if (url.pathname === '/ws/game') return this.handleGameUpgrade(req, socket, head, url, reject);
+    if (!this.originOk(req)) return reject(403);
     if (url.pathname !== '/ws/overlay') return reject(404);
     const overlay = this.checkOverlay(url.searchParams.get('id'), url.searchParams.get('t'));
     if (!overlay) return reject(403);
@@ -228,6 +275,39 @@ export class LocalServer {
       // Overlays are receive-only; ignore anything they send.
       ws.on('message', () => undefined);
       for (const msg of this.opts.initialMessages(overlay.id)) ws.send(JSON.stringify(msg));
+    });
+  }
+
+  /**
+   * Game pages may be hosted anywhere (local folder, Railway...), so any Origin is
+   * accepted here: the per-game random token is what grants access.
+   */
+  private handleGameUpgrade(
+    req: IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+    url: URL,
+    reject: (code: number) => void,
+  ): void {
+    const id = url.searchParams.get('id');
+    const token = url.searchParams.get('t');
+    const game = id ? this.opts.getGame?.(id) : null;
+    if (!game || !token || !safeEqual(game.token, token)) return reject(403);
+    this.wss.handleUpgrade(req, socket, head, (ws) => {
+      let set = this.gameSockets.get(game.id);
+      if (!set) this.gameSockets.set(game.id, (set = new Set()));
+      set.add(ws);
+      ws.on('close', () => set!.delete(ws));
+      ws.on('error', () => ws.terminate());
+      ws.on('message', (data) => {
+        try {
+          const msg = JSON.parse(String(data)) as { type?: string; data?: unknown };
+          if (msg.type === 'game') this.opts.onGameMessage?.(game.id, msg.data);
+        } catch {
+          // ignore malformed frames
+        }
+      });
+      ws.send(JSON.stringify({ type: 'welcome', game: game.id }));
     });
   }
 

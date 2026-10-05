@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { TtsSettingsSchema, exportProfile, importProfile } from '@toktok/core';
 import { ActionSchema, EffectSchema, OverlayConfigSchema, type ActionInput } from '@toktok/shared';
-import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { z } from 'zod';
 import type { DesktopApi, IntegrationDefinitionDto } from '../shared/api';
 import type { AppCore } from './app-core';
@@ -38,6 +38,36 @@ const IntegrationSaveSchema = z.object({
 
 const ActionSaveSchema = ActionSchema.extend({ id: id.optional() });
 const OverlaySaveSchema = OverlayConfigSchema.extend({ id: id.optional() });
+
+const gameWindows = new Set<BrowserWindow>();
+
+/** Isolated window for a home game: no Node, no preload, no popups, separate session. */
+function openGameWindow(title: string, url: string): void {
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    title,
+    autoHideMenuBar: true,
+    backgroundColor: '#000000',
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      partition: 'persist:home-games',
+      backgroundThrottling: false,
+    },
+  });
+  // Games may ask for fullscreen; everything else (camera, mic, notifications…) is refused.
+  win.webContents.session.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === 'fullscreen'));
+  gameWindows.add(win);
+  win.on('closed', () => gameWindows.delete(win));
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  const origin = new URL(url).origin;
+  win.webContents.on('will-navigate', (e, next) => {
+    if (new URL(next).origin !== origin) e.preventDefault();
+  });
+  void win.loadURL(url);
+}
 
 /**
  * zod applies `.default()` values even on a `.partial()` schema: keep only the
@@ -207,6 +237,35 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
     },
     media: {
       ended: (mid: unknown) => core.media.ended(id.parse(mid)),
+    },
+    homeGames: {
+      list: () => core.homeGames.list().map((g) => core.homeGames.dto(g)),
+      addUrl: async (name: unknown, url: unknown) =>
+        core.homeGames.dto(
+          await core.homeGames.add({
+            name: z.string().min(1).max(80).parse(name),
+            url: z.string().url().max(500).parse(url),
+          }),
+        ),
+      addFolder: async (name: unknown) => {
+        const win = getWindow();
+        const opts = {
+          title: 'Dossier du jeu (contenant index.html)',
+          properties: ['openDirectory' as const],
+        };
+        const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+        const folder = res.filePaths[0];
+        if (res.canceled || !folder) return null;
+        return core.homeGames.dto(
+          await core.homeGames.add({ name: z.string().min(1).max(80).parse(name), folder }),
+        );
+      },
+      remove: (gid: unknown) => core.homeGames.remove(id.parse(gid)),
+      open: (gid: unknown) => {
+        const game = core.homeGames.get(id.parse(gid));
+        if (!game || !core.server.port) throw new Error('Jeu introuvable');
+        openGameWindow(game.name, core.homeGames.launchUrl(game));
+      },
     },
     sounds: {
       list: () => core.repos.sounds.list().map(({ id: sid, name, volume }) => ({ id: sid, name, volume })),

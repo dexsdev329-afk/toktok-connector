@@ -17,3 +17,4 @@ export * from './local-server/overlay-feeder';
 export * from './gifts/image-cache';
 export * from './extras/profanity';
 export * from './extras/tts';
+export * from './local-server/game-client';
