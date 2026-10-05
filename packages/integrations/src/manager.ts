@@ -94,6 +94,11 @@ export class IntegrationManager {
     return this.instances.get(id)?.impl.status() ?? { state: 'disconnected', detail: 'désactivée' };
   }
 
+  /** Running instance (for integration-specific operations). */
+  getInstance(id: string): Integration | null {
+    return this.instances.get(id)?.impl ?? null;
+  }
+
   /** Effects of a running instance (bridges add effects declared by connected mods). */
   instanceEffects(id: string): EffectDefinition[] | null {
     return this.instances.get(id)?.impl.listEffects() ?? null;

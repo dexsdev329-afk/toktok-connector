@@ -213,6 +213,14 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
       save: (input: unknown) => core.saveIntegration(IntegrationSaveSchema.parse(input)),
       remove: (iid: unknown) => core.removeIntegration(id.parse(iid)),
       test: (iid: unknown) => core.testIntegration(id.parse(iid)),
+      changeRoomPin: (iid: unknown, pin: unknown) =>
+        core.changeRoomPin(
+          id.parse(iid),
+          z
+            .string()
+            .regex(/^[\w-]{4,64}$/)
+            .parse(pin),
+        ),
     },
     overlays: {
       list: () => core.repos.overlays.list().map((o) => core.overlayDto(o)),

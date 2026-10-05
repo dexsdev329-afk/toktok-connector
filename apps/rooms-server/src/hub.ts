@@ -6,12 +6,13 @@ import { timingSafeEqual } from 'node:crypto';
  * client -> server
  *   {type:"join", room:1..N, pin:"1234", role:"publisher"|"game", name?:string}
  *   publisher: {type:"event", event:{...}} | {type:"effect", effect:"name", params:{}, context:{}}
+ *   publisher: {type:"setPin", pin:"new-pin"}       (changes the room PIN, saved by the server)
  *   game:      {type:"game", data:{...}}          (forwarded to the publishers of the room)
  *   any:       {type:"ping"}
  * server -> client
  *   {type:"joined", room, role, games, publishers} | {type:"error", message}
  *   {type:"event"|"effect", ...} (to games) | {type:"game", data, from} (to publishers)
- *   {type:"presence", games, publishers} | {type:"pong"}
+ *   {type:"presence", games, publishers} | {type:"pong"} | {type:"pinChanged", room}
  */
 
 export type Role = 'publisher' | 'game';
@@ -35,6 +36,8 @@ interface Member {
 export interface HubOptions {
   /** PIN per room number; rooms without a PIN cannot be joined. */
   pins: Map<number, string>;
+  /** Called after a PIN change, to persist the new PINs. */
+  onPinsChanged?: (pins: Map<number, string>) => void;
   maxMessagesPerSecond?: number;
   maxFailedJoins?: number;
   lockMs?: number;
@@ -53,11 +56,13 @@ export function parsePins(raw: string | undefined, roomCount = 20): Map<number, 
   for (const part of (raw ?? '').split(',')) {
     const [r, p] = part.split(':').map((s) => s.trim());
     const room = Number(r);
-    if (Number.isInteger(room) && room >= 1 && room <= roomCount && p && /^[\w-]{4,64}$/.test(p))
+    if (Number.isInteger(room) && room >= 1 && room <= roomCount && p && PIN_PATTERN.test(p))
       pins.set(room, p);
   }
   return pins;
 }
+
+export const PIN_PATTERN = /^[\w-]{4,64}$/;
 
 export class RoomHub {
   private readonly members = new Map<Client, Member | null>();
@@ -109,6 +114,15 @@ export class RoomHub {
       case 'effect':
         if (member.role !== 'publisher') return this.error(client, 'réservé à l’app');
         return this.toRole(member.room, 'game', JSON.stringify(msg));
+      case 'setPin': {
+        // Only the app (publisher) may change the PIN; games never can.
+        if (member.role !== 'publisher') return this.error(client, 'réservé à l’app');
+        const pin = typeof msg.pin === 'string' ? msg.pin.trim() : '';
+        if (!PIN_PATTERN.test(pin))
+          return this.error(client, 'PIN invalide (4 à 64 caractères : lettres, chiffres, - ou _)');
+        this.setPin(member.room, pin);
+        return client.send(JSON.stringify({ type: 'pinChanged', room: member.room }));
+      }
       case 'game':
         if (member.role !== 'game') return this.error(client, 'réservé aux jeux');
         return this.toRole(
@@ -119,6 +133,12 @@ export class RoomHub {
       default:
         return this.error(client, 'type inconnu');
     }
+  }
+
+  /** Changes (or resets) a room PIN and persists it. Connected members stay connected. */
+  setPin(room: number, pin: string): void {
+    this.opts.pins.set(room, pin);
+    this.opts.onPinsChanged?.(this.opts.pins);
   }
 
   private join(client: Client, msg: Record<string, unknown>): void {

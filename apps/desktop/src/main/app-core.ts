@@ -29,6 +29,7 @@ import {
 import { createTikTokClient } from '@toktok/core/tiktok-client';
 import {
   IntegrationManager,
+  RoomsIntegration,
   minecraftStarterPack,
   type GamepadDriver,
   type InputDriver,
@@ -584,6 +585,19 @@ export class AppCore {
     }
     await this.integrations.upsert(this.withSecrets(rec));
     this.opts.push.integrations();
+    return this.integrationDto(rec);
+  }
+
+  /** Changes the PIN of a rooms-server room and stores the new one (encrypted). */
+  async changeRoomPin(id: string, pin: string): Promise<IntegrationDto> {
+    const rec = this.repos.integrations.get(id);
+    const impl = this.integrations.getInstance(id);
+    if (!rec || rec.kind !== 'rooms' || !(impl instanceof RoomsIntegration)) {
+      throw new Error('Intégration « Serveur de salles » active introuvable');
+    }
+    await impl.changePin(pin);
+    this.repos.secrets.set(integrationSecretKey(id, 'pin'), pin);
+    this.system('info', `PIN de la salle ${String(rec.config.room ?? '')} modifié`);
     return this.integrationDto(rec);
   }
 

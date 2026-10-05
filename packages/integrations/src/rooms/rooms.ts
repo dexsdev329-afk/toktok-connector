@@ -16,7 +16,7 @@ export const RoomsConfigSchema = z.object({
     .max(300)
     .refine((v) => /^wss?:\/\//i.test(v), 'URL ws:// ou wss:// attendue'),
   room: z.coerce.number().int().min(1).max(100),
-  pin: z.string().min(4).max(64),
+  pin: z.string().min(4).max(64).default('0000'),
   /** Forward every live event (gift, like, chat...) to the games of the room. */
   forwardEvents: z.boolean().default(true),
 });
@@ -36,6 +36,7 @@ export class RoomsIntegration implements Integration {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private state: IntegrationStatus = { state: 'disconnected' };
   private joined = false;
+  private pinWaiter: { resolve: () => void; reject: (e: Error) => void } | null = null;
 
   constructor(
     private readonly config: RoomsConfig,
@@ -87,6 +88,39 @@ export class RoomsIntegration implements Integration {
     }
   }
 
+  /** Changes the room PIN on the server (the app is the room owner). Resolves once saved. */
+  changePin(pin: string): Promise<void> {
+    if (!/^[\w-]{4,64}$/.test(pin)) {
+      return Promise.reject(
+        new IntegrationError('PIN invalide (4 à 64 caractères : lettres, chiffres, - ou _)'),
+      );
+    }
+    if (this.pinWaiter) return Promise.reject(new IntegrationError('Changement de PIN déjà en cours'));
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pinWaiter = null;
+        reject(new IntegrationError('Pas de réponse du serveur de salles'));
+      }, 5000);
+      this.pinWaiter = {
+        resolve: () => {
+          clearTimeout(timer);
+          this.pinWaiter = null;
+          // Reconnections must use the new PIN.
+          this.config.pin = pin;
+          resolve();
+        },
+        reject: (e) => {
+          clearTimeout(timer);
+          this.pinWaiter = null;
+          reject(e);
+        },
+      };
+      if (!this.sendJson({ type: 'setPin', pin })) {
+        this.pinWaiter.reject(new IntegrationError('Serveur de salles non connecté'));
+      }
+    });
+  }
+
   private sendJson(msg: unknown): boolean {
     if (!this.joined || !this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
     this.ws.send(JSON.stringify(msg));
@@ -125,8 +159,11 @@ export class RoomsIntegration implements Integration {
           detail: `Salle ${this.config.room} — ${msg.games ?? 0} jeu(x) connecté(s)`,
         };
         this.deps.statusChanged?.();
+      } else if (msg.type === 'pinChanged') {
+        this.pinWaiter?.resolve();
       } else if (msg.type === 'error') {
-        this.deps.log('warn', `Serveur de salles : ${msg.message ?? 'erreur'}`);
+        if (this.pinWaiter) this.pinWaiter.reject(new IntegrationError(msg.message ?? 'erreur'));
+        else this.deps.log('warn', `Serveur de salles : ${msg.message ?? 'erreur'}`);
       } else if (msg.type === 'game') {
         this.deps.log('info', `[Jeu ${msg.from ?? ''}] ${JSON.stringify(msg.data).slice(0, 200)}`);
       }

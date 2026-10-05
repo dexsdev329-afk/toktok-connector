@@ -82,6 +82,25 @@ describe('RoomsIntegration', () => {
     game.close();
   });
 
+  it('changes the room PIN and reconnects with it', async () => {
+    const port = await startServer();
+    integ = new RoomsIntegration(
+      { url: `ws://127.0.0.1:${port}`, room: 3, pin: 'secret-pin', forwardEvents: true },
+      { log: () => {} },
+    );
+    await integ.connect();
+    await waitFor(() => integ!.status().state === 'connected');
+    await expect(integ.changePin('x')).rejects.toThrow(/PIN invalide/);
+    await integ.changePin('new-pin-42');
+    const game = new WebSocket(`ws://127.0.0.1:${port}`);
+    const got: Record<string, unknown>[] = [];
+    game.on('message', (d) => got.push(JSON.parse(String(d)) as Record<string, unknown>));
+    await new Promise((r) => game.on('open', r));
+    game.send(JSON.stringify({ type: 'join', room: 3, pin: 'new-pin-42', role: 'game' }));
+    await waitFor(() => got.some((m) => m.type === 'joined'));
+    game.close();
+  });
+
   it('stops retrying on a wrong PIN', async () => {
     const port = await startServer();
     integ = new RoomsIntegration(

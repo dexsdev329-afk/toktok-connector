@@ -181,6 +181,7 @@ export interface DesktopApi {
     save(input: IntegrationSaveInput): Promise<IntegrationDto>;
     remove(id: string): Promise<void>;
     test(id: string): Promise<IntegrationDto>;
+    changeRoomPin(id: string, pin: string): Promise<IntegrationDto>;
   };
   overlays: {
     list(): Promise<OverlayDto[]>;

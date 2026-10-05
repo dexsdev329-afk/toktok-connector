@@ -194,6 +194,12 @@ const fr = {
       room: 'Numéro de salle',
       pin: 'PIN de la salle',
       forwardEvents: 'Envoyer tous les événements du live aux jeux',
+      changePin: 'Changer le PIN',
+      newPin: 'Nouveau PIN',
+      confirmPin: 'Confirme le PIN',
+      pinChanged: 'PIN modifié et enregistré',
+      pinHelp:
+        'Le nouveau PIN est enregistré sur le serveur et dans l’app. Pense à le mettre aussi dans tes jeux (4 à 64 caractères : lettres, chiffres, - ou _).',
     },
     gamepad: { controller: 'Type de manette' },
     input: {

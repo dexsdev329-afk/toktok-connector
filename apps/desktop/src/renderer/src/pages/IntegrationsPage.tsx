@@ -13,6 +13,7 @@ export function IntegrationsPage() {
   const version = useStore((s) => s.integrationsVersion);
   const [defs] = useLoad(() => api.integrations.definitions());
   const [list, reload] = useLoad(() => api.integrations.list(), [version]);
+  const [pinFor, setPinFor] = useState<IntegrationDto | null>(null);
   const [editing, setEditing] = useState<{
     def: IntegrationDefinitionDto;
     current: IntegrationDto | null;
@@ -65,6 +66,16 @@ export function IntegrationsPage() {
                   <Button size="sm" onClick={() => void test(i.id)} disabled={!i.enabled}>
                     {t('integrations.testConnection')}
                   </Button>
+                  {i.kind === 'rooms' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={i.status.state !== 'connected'}
+                      onClick={() => setPinFor(i)}
+                    >
+                      🔑 {t('integrations.rooms.changePin')}
+                    </Button>
+                  )}
                   {def && (
                     <Button size="sm" variant="ghost" onClick={() => setEditing({ def, current: i })}>
                       {t('common.edit')}
@@ -79,6 +90,16 @@ export function IntegrationsPage() {
           </div>
         )}
       </Card>
+      {pinFor && (
+        <PinModal
+          integration={pinFor}
+          onClose={() => setPinFor(null)}
+          onDone={() => {
+            setPinFor(null);
+            reload();
+          }}
+        />
+      )}
       {editing && (
         <IntegrationModal
           def={editing.def}
@@ -211,6 +232,61 @@ function IntegrationModal({
             </Field>
           );
         })}
+      </div>
+    </Modal>
+  );
+}
+
+function PinModal({
+  integration,
+  onClose,
+  onDone,
+}: {
+  integration: IntegrationDto;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const valid = /^[\w-]{4,64}$/.test(pin) && pin === confirmPin;
+  const [save, busy] = useAction(async () => {
+    await api.integrations.changeRoomPin(integration.id, pin);
+    onDone();
+  }, t('integrations.rooms.pinChanged'));
+  return (
+    <Modal
+      title={`🔑 ${t('integrations.rooms.changePin')} — ${t('integrations.rooms.room')} ${String(integration.config.room ?? '')}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="primary" disabled={!valid || busy} onClick={() => void save()}>
+            {t('common.save')}
+          </Button>
+        </>
+      }
+    >
+      <div className="grid gap-3">
+        <p className="text-sm text-slate-400">{t('integrations.rooms.pinHelp')}</p>
+        <Field label={t('integrations.rooms.newPin')}>
+          <Input
+            type="password"
+            autoComplete="new-password"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+          />
+        </Field>
+        <Field label={t('integrations.rooms.confirmPin')}>
+          <Input
+            type="password"
+            autoComplete="new-password"
+            value={confirmPin}
+            onChange={(e) => setConfirmPin(e.target.value)}
+          />
+        </Field>
       </div>
     </Modal>
   );

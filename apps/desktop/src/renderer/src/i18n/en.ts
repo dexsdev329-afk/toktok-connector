@@ -196,6 +196,12 @@ const en: Dict = {
       room: 'Room number',
       pin: 'Room PIN',
       forwardEvents: 'Send every live event to the games',
+      changePin: 'Change PIN',
+      newPin: 'New PIN',
+      confirmPin: 'Confirm PIN',
+      pinChanged: 'PIN changed and saved',
+      pinHelp:
+        'The new PIN is saved on the server and in the app. Remember to update your games too (4 to 64 characters: letters, digits, - or _).',
     },
     gamepad: { controller: 'Controller type' },
     input: {

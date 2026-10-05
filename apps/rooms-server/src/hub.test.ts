@@ -81,3 +81,27 @@ describe('rooms hub', () => {
     expect(app.sent.filter((m) => m.type === 'error' && m.message === 'trop de messages')).toHaveLength(3);
   });
 });
+
+describe('PIN changes', () => {
+  it('lets the app change the room PIN, never a game', () => {
+    const saved: string[] = [];
+    const hub = new RoomHub({ pins: parsePins('1:0000'), onPinsChanged: (p) => saved.push(p.get(1)!) });
+    const app = client();
+    const game = client();
+    join(hub, app, 1, '0000', 'publisher');
+    join(hub, game, 1, '0000', 'game');
+    hub.handle(game, JSON.stringify({ type: 'setPin', pin: '9999' }));
+    expect(game.sent.at(-1)).toMatchObject({ type: 'error' });
+    hub.handle(app, JSON.stringify({ type: 'setPin', pin: 'ab' }));
+    expect(app.sent.at(-1)).toMatchObject({ type: 'error' });
+    hub.handle(app, JSON.stringify({ type: 'setPin', pin: 'nouveau-pin' }));
+    expect(app.sent.at(-1)).toEqual({ type: 'pinChanged', room: 1 });
+    expect(saved).toEqual(['nouveau-pin']);
+    const late = client('2.2.2.2');
+    join(hub, late, 1, '0000', 'game');
+    expect(late.closed).toBe(4003);
+    const ok = client('3.3.3.3');
+    join(hub, ok, 1, 'nouveau-pin', 'game');
+    expect(ok.closed).toBeNull();
+  });
+});
