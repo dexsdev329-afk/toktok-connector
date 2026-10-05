@@ -1,8 +1,13 @@
-import type { OverlayConfig, OverlayServerMessage, TopDonor } from '@toktok/shared';
+import type { OverlayConfig, OverlayServerMessage, RecentFollower, TopDonor } from '@toktok/shared';
 import { useCallback, useState, type CSSProperties } from 'react';
 import { Alerts, type AlertItem } from './overlays/Alerts';
+import { Chat, type TimedChatLine } from './overlays/Chat';
 import { LikeGoal } from './overlays/LikeGoal';
+import { RecentFollowers } from './overlays/RecentFollowers';
+import { Timer, type TimerSnapshot } from './overlays/Timer';
 import { TopDonors } from './overlays/TopDonors';
+import { Viewers } from './overlays/Viewers';
+import { Wheel, type WheelSpin } from './overlays/Wheel';
 import { useOverlaySocket } from './useOverlaySocket';
 
 export function App() {
@@ -10,6 +15,11 @@ export function App() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [donors, setDonors] = useState<TopDonor[]>([]);
   const [likes, setLikes] = useState({ total: 0, goal: 1 });
+  const [chat, setChat] = useState<TimedChatLine[]>([]);
+  const [viewers, setViewers] = useState({ viewers: 0, likes: 0 });
+  const [spin, setSpin] = useState<WheelSpin | null>(null);
+  const [timer, setTimer] = useState<TimerSnapshot>({ running: false, remainingMs: 0, receivedAt: 0 });
+  const [followers, setFollowers] = useState<RecentFollower[]>([]);
 
   const onMessage = useCallback((msg: OverlayServerMessage) => {
     switch (msg.type) {
@@ -24,6 +34,24 @@ export function App() {
         break;
       case 'likes':
         setLikes({ total: msg.total, goal: msg.goal });
+        break;
+      case 'chat': {
+        const now = Date.now();
+        const lines = msg.lines.map((l) => ({ ...l, receivedAt: now }));
+        setChat((c) => (msg.replace ? lines : [...c, ...lines].slice(-30)));
+        break;
+      }
+      case 'viewers':
+        setViewers({ viewers: msg.viewers, likes: msg.likes });
+        break;
+      case 'wheelSpin':
+        setSpin(msg.spin);
+        break;
+      case 'timer':
+        setTimer({ running: msg.running, remainingMs: msg.remainingMs, receivedAt: performance.now() });
+        break;
+      case 'recentFollowers':
+        setFollowers(msg.users);
         break;
     }
   }, []);
@@ -47,6 +75,11 @@ export function App() {
       {config.kind === 'like-goal' && (
         <LikeGoal options={config.options} total={likes.total} goal={likes.goal} />
       )}
+      {config.kind === 'chat' && <Chat options={config.options} lines={chat} />}
+      {config.kind === 'viewers' && <Viewers options={config.options} {...viewers} />}
+      {config.kind === 'wheel' && <Wheel options={config.options} spin={spin} />}
+      {config.kind === 'timer' && <Timer options={config.options} timer={timer} />}
+      {config.kind === 'recent-followers' && <RecentFollowers options={config.options} users={followers} />}
     </div>
   );
 }

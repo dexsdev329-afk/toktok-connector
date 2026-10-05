@@ -233,6 +233,18 @@ export function registerIpc(core: AppCore, getWindow: () => BrowserWindow | null
         core.repos.overlays.delete(id.parse(oid));
       },
       regenerateToken: (oid: unknown) => core.regenerateOverlayToken(id.parse(oid)),
+      spinWheel: (oid: unknown) => core.spinWheel(id.parse(oid)),
+      timer: (oid: unknown, op: unknown, seconds: unknown) =>
+        core.controlTimer(
+          id.parse(oid),
+          z.enum(['start', 'pause', 'toggle', 'reset', 'add', 'set']).parse(op),
+          z
+            .number()
+            .int()
+            .min(-86_400)
+            .max(86_400)
+            .parse(seconds ?? 0),
+        ),
       open: async (oid: unknown) => {
         const o = core.repos.overlays.get(id.parse(oid));
         if (!o || !core.server.port) throw new Error('Overlay indisponible');

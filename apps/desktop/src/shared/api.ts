@@ -195,6 +195,12 @@ export interface DesktopApi {
     remove(id: string): Promise<void>;
     regenerateToken(id: string): Promise<OverlayDto>;
     open(id: string): Promise<void>;
+    spinWheel(id: string): Promise<void>;
+    timer(
+      id: string,
+      op: 'start' | 'pause' | 'toggle' | 'reset' | 'add' | 'set',
+      seconds?: number,
+    ): Promise<void>;
   };
   engine: {
     clearQueue(): Promise<void>;

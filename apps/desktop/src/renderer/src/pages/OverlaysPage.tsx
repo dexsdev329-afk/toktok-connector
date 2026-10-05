@@ -1,4 +1,4 @@
-import type { OverlayKind } from '@toktok/shared';
+import { wheelSliceColor, type Action, type OverlayKind, type WheelSegment } from '@toktok/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { OverlayDto } from '../../../shared/api';
@@ -7,7 +7,16 @@ import { api } from '../lib/api';
 import { useAction, useLoad } from '../lib/hooks';
 import { toast } from '../lib/toast';
 
-const KINDS: OverlayKind[] = ['alerts', 'top-donors', 'like-goal'];
+const KINDS: OverlayKind[] = [
+  'alerts',
+  'top-donors',
+  'like-goal',
+  'chat',
+  'viewers',
+  'recent-followers',
+  'wheel',
+  'timer',
+];
 const DEFAULT_STYLE: OverlayDto['style'] = {
   theme: 'default',
   primaryColor: '#ff2d75',
@@ -39,7 +48,7 @@ export function OverlaysPage() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-slate-400">{t('overlays.intro')}</p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {KINDS.map((k) => (
           <Button key={k} onClick={() => void add(k)}>
             ＋ {t(`overlays.kinds.${k}`)}
@@ -88,6 +97,7 @@ export function OverlaysPage() {
               ✕
             </Button>
           </div>
+          <OverlayControls overlay={o} />
         </Card>
       ))}
       {editing && (
@@ -289,6 +299,119 @@ function OverlayEditor({
               </Field>
             </div>
           )}
+          {overlay.kind === 'chat' && (
+            <div className="grid gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t('overlays.maxMessages')}>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={String(opt('maxMessages', 8))}
+                    onChange={(e) => setOpt('maxMessages', Number(e.target.value) || 8)}
+                  />
+                </Field>
+                <Field label={t('overlays.fadeAfterSec')}>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={600}
+                    value={String(opt('fadeAfterSec', 0))}
+                    onChange={(e) => setOpt('fadeAfterSec', Number(e.target.value) || 0)}
+                  />
+                </Field>
+              </div>
+              {(
+                [
+                  ['hideCommands', true],
+                  ['showPlatform', true],
+                  ['showAvatars', true],
+                ] as const
+              ).map(([k, d]) => (
+                <Toggle
+                  key={k}
+                  checked={Boolean(opt(k, d))}
+                  onChange={(v) => setOpt(k, v)}
+                  label={t(`overlays.${k}`)}
+                />
+              ))}
+            </div>
+          )}
+          {overlay.kind === 'viewers' && (
+            <div className="grid gap-3">
+              <Field label={t('overlays.label')}>
+                <Input
+                  value={String(opt('label', t('overlays.defaults.viewers')))}
+                  onChange={(e) => setOpt('label', e.target.value)}
+                />
+              </Field>
+              <Toggle
+                checked={Boolean(opt('showLikes', false))}
+                onChange={(v) => setOpt('showLikes', v)}
+                label={t('overlays.showLikes')}
+              />
+            </div>
+          )}
+          {overlay.kind === 'recent-followers' && (
+            <div className="grid gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t('overlays.title')}>
+                  <Input
+                    value={String(opt('title', t('overlays.defaults.followers')))}
+                    onChange={(e) => setOpt('title', e.target.value)}
+                  />
+                </Field>
+                <Field label={t('overlays.limitUsers')}>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={String(opt('limit', 5))}
+                    onChange={(e) => setOpt('limit', Number(e.target.value) || 5)}
+                  />
+                </Field>
+              </div>
+              <Toggle
+                checked={Boolean(opt('includeSubscribers', true))}
+                onChange={(v) => setOpt('includeSubscribers', v)}
+                label={t('overlays.includeSubscribers')}
+              />
+            </div>
+          )}
+          {overlay.kind === 'timer' && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t('overlays.title')}>
+                <Input
+                  value={String(opt('title', 'Subathon'))}
+                  onChange={(e) => setOpt('title', e.target.value)}
+                />
+              </Field>
+              <Field label={t('overlays.endText')}>
+                <Input
+                  value={String(opt('endText', t('overlays.defaults.endText')))}
+                  onChange={(e) => setOpt('endText', e.target.value)}
+                />
+              </Field>
+              <Field label={t('overlays.initialMinutes')}>
+                <Input
+                  type="number"
+                  min={0}
+                  value={String(Number(opt('initialSeconds', 600)) / 60)}
+                  onChange={(e) => setOpt('initialSeconds', Math.round((Number(e.target.value) || 0) * 60))}
+                />
+              </Field>
+              <Field label={t('overlays.maxMinutes')}>
+                <Input
+                  type="number"
+                  min={0}
+                  value={String(Number(opt('maxSeconds', 0)) / 60)}
+                  onChange={(e) => setOpt('maxSeconds', Math.round((Number(e.target.value) || 0) * 60))}
+                />
+              </Field>
+              <p className="col-span-2 text-xs text-slate-500">{t('overlays.timerHelp')}</p>
+            </div>
+          )}
+          {overlay.kind === 'wheel' && <WheelOptions options={options} setOpt={setOpt} />}
         </div>
         <div>
           <h4 className="mb-2 text-sm font-semibold text-slate-300">{t('overlays.preview')}</h4>
@@ -301,4 +424,159 @@ function OverlayEditor({
       </div>
     </Modal>
   );
+}
+
+const DEFAULT_SEGMENTS: WheelSegment[] = [
+  { label: 'Zombie', weight: 1 },
+  { label: 'TNT', weight: 1 },
+  { label: 'Diamants', weight: 1 },
+  { label: 'Rien', weight: 1 },
+  { label: 'Creeper', weight: 1 },
+  { label: 'Soin', weight: 1 },
+];
+
+function WheelOptions({
+  options,
+  setOpt,
+}: {
+  options: Record<string, unknown>;
+  setOpt: (key: string, value: unknown) => void;
+}) {
+  const { t } = useTranslation();
+  const segments = (options.segments as WheelSegment[] | undefined) ?? DEFAULT_SEGMENTS;
+  const [actions] = useLoad(async (): Promise<Action[]> => {
+    const active = (await api.profiles.list()).find((p) => p.isActive);
+    return active ? api.actions.list(active.id) : [];
+  });
+  const setSeg = (i: number, patch: Partial<WheelSegment>) =>
+    setOpt(
+      'segments',
+      segments.map((s, j) => {
+        if (j !== i) return s;
+        const next: WheelSegment = { ...s, ...patch };
+        if (!next.actionId) delete next.actionId;
+        if (!next.color) delete next.color;
+        return next;
+      }),
+    );
+  const total = segments.reduce((n, s) => n + (s.weight || 0), 0) || 1;
+  return (
+    <div className="grid gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t('overlays.title')}>
+          <Input
+            value={String(options.title ?? t('overlays.defaults.wheel'))}
+            onChange={(e) => setOpt('title', e.target.value)}
+          />
+        </Field>
+        <Field label={t('overlays.spinSeconds')}>
+          <Input
+            type="number"
+            min={2}
+            max={20}
+            value={String(Number(options.spinMs ?? 6000) / 1000)}
+            onChange={(e) => setOpt('spinMs', Math.round((Number(e.target.value) || 6) * 1000))}
+          />
+        </Field>
+      </div>
+      <Toggle
+        checked={Boolean(options.hideWhenIdle ?? false)}
+        onChange={(v) => setOpt('hideWhenIdle', v)}
+        label={t('overlays.hideWhenIdle')}
+      />
+      <div className="text-xs text-slate-400">{t('overlays.segmentsHelp')}</div>
+      <div className="grid gap-1.5">
+        {segments.map((s, i) => (
+          <div key={i} className="grid grid-cols-[1fr_2.5rem_4rem_1fr_auto] items-center gap-1.5">
+            <Input
+              value={s.label}
+              maxLength={40}
+              onChange={(e) => setSeg(i, { label: e.target.value })}
+              placeholder={t('overlays.segmentLabel')}
+            />
+            <input
+              type="color"
+              title={t('overlays.segmentColor')}
+              value={s.color ?? wheelSliceColor(i, segments.length)}
+              onChange={(e) => setSeg(i, { color: e.target.value })}
+              className="h-8 w-full rounded bg-transparent"
+            />
+            <Input
+              type="number"
+              min={0.1}
+              step={0.5}
+              title={`${Math.round(((s.weight || 0) / total) * 100)} %`}
+              value={String(s.weight)}
+              onChange={(e) => setSeg(i, { weight: Math.max(0.1, Number(e.target.value) || 1) })}
+            />
+            <Select value={s.actionId ?? ''} onChange={(e) => setSeg(i, { actionId: e.target.value })}>
+              <option value="">{t('overlays.noAction')}</option>
+              {actions?.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </Select>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={segments.length <= 2}
+              onClick={() =>
+                setOpt(
+                  'segments',
+                  segments.filter((_, j) => j !== i),
+                )
+              }
+            >
+              ✕
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button
+        size="sm"
+        disabled={segments.length >= 24}
+        onClick={() => setOpt('segments', [...segments, { label: `Case ${segments.length + 1}`, weight: 1 }])}
+      >
+        ＋ {t('overlays.addSegment')}
+      </Button>
+    </div>
+  );
+}
+
+/** Manual buttons for interactive overlays (also usable live from the app). */
+function OverlayControls({ overlay }: { overlay: OverlayDto }) {
+  const { t } = useTranslation();
+  const [spin] = useAction(() => api.overlays.spinWheel(overlay.id));
+  const [timer] = useAction((op: 'toggle' | 'reset' | 'add', seconds?: number) =>
+    api.overlays.timer(overlay.id, op, seconds),
+  );
+  if (overlay.kind === 'wheel') {
+    return (
+      <div className="mt-3">
+        <Button size="sm" variant="primary" onClick={() => void spin()}>
+          🎡 {t('overlays.spin')}
+        </Button>
+      </div>
+    );
+  }
+  if (overlay.kind === 'timer') {
+    return (
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="primary" onClick={() => void timer('toggle')}>
+          ⏯ {t('overlays.startPause')}
+        </Button>
+        <Button size="sm" onClick={() => void timer('add', 60)}>
+          +1 min
+        </Button>
+        <Button size="sm" onClick={() => void timer('add', -60)}>
+          −1 min
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => void timer('reset')}>
+          ↺ {t('overlays.reset')}
+        </Button>
+      </div>
+    );
+  }
+  return null;
 }

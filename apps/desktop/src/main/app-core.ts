@@ -27,6 +27,7 @@ import {
   type Repositories,
   type SecretCipher,
   type SoundRecord,
+  type TimerOp,
   type TtsSettings,
 } from '@toktok/core';
 import { createTikTokClient } from '@toktok/core/tiktok-client';
@@ -39,6 +40,7 @@ import {
   type IntegrationDefinition,
 } from '@toktok/integrations';
 import { HomeGames, homeGamesDefinition } from './home-games';
+import { overlayEffectsDefinition } from './overlay-effects';
 import {
   OverlayStyleSchema,
   contextFromEvent,
@@ -51,6 +53,9 @@ import {
   type LiveEvent,
   type OverlayConfig,
   type OverlayKind,
+  type TemplateContext,
+  type WheelSegment,
+  parseOverlayOptions,
   renderTemplate,
 } from '@toktok/shared';
 import { MediaBridge, browserEngine, elevenLabsEngine, listSapiVoices, sapiEngine } from './media';
@@ -211,7 +216,9 @@ export class AppCore {
       () => this.repos.overlays.list(),
       this.tracker,
       (id, msg) => this.server.sendToOverlay(id, msg),
+      { onWheelResult: (overlay, segment, ctx) => this.onWheelResult(overlay, segment, ctx) },
     );
+    this.integrations.register(overlayEffectsDefinition(() => this.feeder) as IntegrationDefinition<unknown>);
 
     this.wire();
   }
@@ -228,6 +235,14 @@ export class AppCore {
     }
     if (!this.repos.integrations.list().some((i) => i.kind === 'home-games')) {
       this.repos.integrations.save({ kind: 'home-games', name: 'Jeux maison', enabled: true, config: {} });
+    }
+    if (!this.repos.integrations.list().some((i) => i.kind === 'overlays')) {
+      this.repos.integrations.save({
+        kind: 'overlays',
+        name: 'Overlays interactifs',
+        enabled: true,
+        config: {},
+      });
     }
     for (const rec of this.repos.integrations.list()) {
       await this.integrations.upsert(this.withSecrets(rec)).catch((err: unknown) => {
@@ -554,6 +569,22 @@ export class AppCore {
     };
   }
 
+  private onWheelResult(
+    overlay: OverlayConfig,
+    segment: WheelSegment,
+    ctx: TemplateContext | undefined,
+  ): void {
+    const by = ctx?.displayName ? ` (${ctx.displayName})` : '';
+    this.system('info', `Roue « ${overlay.name} » : ${segment.label}${by}`);
+    if (!segment.actionId) return;
+    const action = this.repos.actions.get(segment.actionId);
+    if (!action) {
+      this.system('warn', `Roue « ${overlay.name} » : action introuvable pour « ${segment.label} »`);
+      return;
+    }
+    this.engine.triggerManually(action, ctx ?? contextFromEvent(this.sampleGiftEvent()));
+  }
+
   private triggerActionById(id: string): boolean {
     const action = this.repos.actions.get(id);
     if (!action) return false;
@@ -685,9 +716,18 @@ export class AppCore {
   }
 
   saveOverlay(input: OverlaySaveInput): OverlayDto {
-    const saved = this.repos.overlays.save(input, () => generateToken());
+    const options = parseOverlayOptions(input.kind, input.options);
+    const saved = this.repos.overlays.save({ ...input, options }, () => generateToken());
     this.feeder.configChanged(saved);
     return this.overlayDto(saved);
+  }
+
+  spinWheel(id: string): void {
+    if (this.feeder.spinWheel(id) === 0) throw new Error('Roue introuvable');
+  }
+
+  controlTimer(id: string, op: TimerOp, seconds: number): void {
+    if (this.feeder.controlTimer(id, op, seconds) === 0) throw new Error('Minuteur introuvable');
   }
 
   regenerateOverlayToken(id: string): OverlayDto {

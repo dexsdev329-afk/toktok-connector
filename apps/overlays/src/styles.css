@@ -130,6 +130,181 @@ body,
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+/* ---------- Chat ---------- */
+.chat {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.3em;
+  min-height: calc(100vh - 32px);
+  font-size: 0.7em;
+}
+.chat-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  padding: 0.4em 0.7em;
+  border-radius: 14px;
+}
+.chat-avatar {
+  flex: none;
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  object-fit: cover;
+}
+.chat-body {
+  min-width: 0;
+}
+.chat-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+}
+.chat-name {
+  font-weight: 800;
+  color: var(--primary);
+}
+.chat-text {
+  overflow-wrap: anywhere;
+}
+.chat-platform,
+.chat-badge {
+  font-size: 0.65em;
+  font-weight: 800;
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.platform-tiktok {
+  background: #fe2c55;
+  color: #fff;
+}
+.platform-kick {
+  background: #53fc18;
+  color: #0b0b0b;
+}
+
+/* ---------- Viewers ---------- */
+.viewers {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-weight: 800;
+}
+.viewers-dot {
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: #ff3b3b;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.viewers-count {
+  font-variant-numeric: tabular-nums;
+}
+.viewers-label {
+  font-weight: 600;
+  font-size: 0.75em;
+  opacity: 0.85;
+}
+.viewers-likes {
+  margin-left: 0.5em;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Recent followers ---------- */
+.follower-row {
+  display: grid;
+  grid-template-columns: 1.2em 1.6em 1fr auto;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.75em;
+  padding: 0.15em 0;
+}
+.follower-icon {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* ---------- Timer ---------- */
+.timer {
+  display: inline-block;
+  text-align: center;
+  min-width: 7em;
+}
+.timer-title {
+  font-weight: 700;
+  font-size: 0.7em;
+  color: var(--primary);
+}
+.timer-value {
+  font-weight: 900;
+  font-size: 1.8em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.timer-paused .timer-value {
+  opacity: 0.7;
+}
+.timer-done .timer-value {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* ---------- Wheel ---------- */
+.wheel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4em;
+}
+.wheel-title {
+  font-weight: 800;
+  color: var(--primary);
+}
+.wheel-box {
+  position: relative;
+  width: min(80vmin, 520px);
+  aspect-ratio: 1;
+}
+.wheel-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+}
+.wheel-label {
+  fill: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 2px;
+}
+.wheel-pointer {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: -0.2em;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 0.6em solid transparent;
+  border-right: 0.6em solid transparent;
+  border-top: 1.1em solid var(--primary);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+.wheel-result {
+  font-weight: 900;
+  font-size: 1.2em;
+  text-align: center;
+}
+.wheel-by {
+  font-size: 0.55em;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
 /* ---------- Themes ---------- */
 .theme-minimal .card {
   background: transparent;
@@ -146,6 +321,9 @@ body,
     inset 0 0 12px color-mix(in srgb, var(--primary) 40%, transparent);
 }
 .theme-neon .alert-name,
+.theme-neon .chat-name,
+.theme-neon .timer-value,
+.theme-neon .wheel-title,
 .theme-neon .donors-title,
 .theme-neon .donor-rank {
   text-shadow:

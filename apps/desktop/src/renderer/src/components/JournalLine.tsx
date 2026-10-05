@@ -16,6 +16,7 @@ export function useEventText() {
           count: e.count,
           gift: e.gift.name,
           diamonds: e.gift.diamonds * e.count,
+          unit: e.platform === 'kick' ? 'Kicks' : '💎',
         });
       case 'like':
         return t('events.like', { user, count: e.count });

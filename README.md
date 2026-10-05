@@ -23,7 +23,8 @@ réel : commandes Minecraft, touches clavier, alertes à l'écran…
   - **Minecraft Java (RCON)** : commandes avec variables et une vingtaine de préréglages (mobs, TNT, effets
     de potion, météo, titres, objets).
   - **Clavier & souris** : un petit langage de script (`tap`, `hold`, `wait`, `type`, `click`, `move`…).
-- **Overlays** pour TikTok LIVE Studio et OBS : alertes, top donateurs, objectif de likes. Thèmes classique,
+- **Overlays** pour TikTok LIVE Studio et OBS : alertes, top donateurs, objectif de likes, chat, spectateurs,
+  derniers followers, roue de la fortune, minuteur subathon. Thèmes classique,
   néon et minimal ; couleurs, police et animations réglables ; aperçu en direct.
 - **Journal en direct** de tous les événements et de toutes les actions exécutées.
 - **API locale** (Stream Deck) : déclencher une action via HTTP avec un jeton.
@@ -80,16 +81,17 @@ l'éditeur d'une action, la section **Plateformes** permet de la limiter à TikT
 
 Ce que Kick fournit à l'app (flux public en lecture seule, observé en octobre 2026) :
 
-| Événement Kick | Dans l'app |
-| --- | --- |
-| Message du chat (emotes converties en texte) | `chat` (commandes `!xxx`, mots-clés, TTS) |
-| Cadeau Kicks (Hell Yeah, Hype, Rage Quit…) | `gift` : id `kick:<gift_id>`, valeur en Kicks (comptée comme des 💎) |
-| Abonnement | `subscribe` |
-| Abonnements offerts | `gift` « Abonnement offert » (`kick:gifted-sub`), `count` = nombre d'abonnements |
-| Spectateurs (toutes les 30 s) / fin du live | `viewerCount` / `disconnected` |
+| Événement Kick                                            | Dans l'app                                                                       |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Message du chat (emotes converties en texte)              | `chat` (commandes `!xxx`, mots-clés, TTS)                                        |
+| Cadeau Kicks (Hell Yeah, Hype, Rage Quit…)                | `gift` : id `kick:<gift_id>`, valeur en Kicks (comptée comme des 💎)             |
+| Abonnement (nouveau ou renouvelé, avec le nombre de mois) | `subscribe`                                                                      |
+| Abonnements offerts                                       | `gift` « Abonnement offert » (`kick:gifted-sub`), `count` = nombre d'abonnements |
+| Spectateurs (toutes les 30 s) / fin du live               | `viewerCount` / `disconnected`                                                   |
 
-Limites : Kick ne diffuse pas publiquement les **follows** (aucun follow observé sur 72 chaînes en direct) et il
-n'y a pas de likes. Le flux n'est pas documenté officiellement par Kick : s'il change, l'app ignore les messages
+Limites : Kick ne diffuse pas publiquement les **follows** (aucun follow observé en 15 minutes sur 72 chaînes
+en direct) et il n'y a pas de likes. Les abonnements offerts (`GiftedSubscriptionsEvent`) sont gérés mais n'ont
+pas pu être observés pendant les tests. Le flux n'est pas documenté officiellement par Kick : s'il change, l'app ignore les messages
 qu'elle ne comprend plus au lieu de planter.
 
 ### 2. Minecraft
@@ -210,6 +212,28 @@ Onglet **Sons & voix** :
 
 Dans l'onglet **Overlays**, copie l'URL d'un overlay et colle-la dans **TikTok LIVE Studio** ou **OBS**
 (source navigateur, fond transparent). Le bouton « Nouveau lien » invalide l'ancienne URL.
+
+| Overlay            | Contenu                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| Alertes            | Cadeaux (au-dessus d'un seuil), follows, partages, abonnements                                       |
+| Top donateurs      | Classement de la session                                                                             |
+| Objectif de likes  | Jauge, avec objectif qui augmente automatiquement                                                    |
+| Chat               | Messages TikTok et Kick (badge de plateforme, MOD/SUB), commandes `!xxx` masquables, effacement auto |
+| Spectateurs        | Nombre de spectateurs (TikTok + Kick additionnés), likes en option                                   |
+| Derniers followers | Derniers follows et abonnements                                                                      |
+| Roue               | Roue de la fortune : cases avec poids (chances) et **une action par case** lancée à l'arrêt          |
+| Minuteur           | Compte à rebours type subathon : durée de départ, maximum, texte de fin                              |
+
+La **roue** et le **minuteur** se pilotent depuis les actions grâce à l'intégration intégrée **Overlays
+interactifs** :
+
+- « Faire tourner la roue » : les tours s'enchaînent dans l'ordre ; le viewer qui a déclenché le tour est
+  affiché et transmis à l'action de la case (variables `{username}`, `{count}`…).
+- « Minuteur (subathon) » : ajouter / régler du temps, démarrer, pause, réinitialiser. Le temps peut être
+  multiplié par le nombre de cadeaux ou leur valeur (ex. +10 s par 💎).
+
+Des boutons manuels (🎡 Tourner, ⏯, ±1 min) sont aussi disponibles sur la page Overlays. Le paramètre
+« Overlay » d'un effet accepte le nom de l'overlay ou `*` pour tous.
 
 ### 5. Stream Deck / API locale
 

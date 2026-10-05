@@ -172,7 +172,7 @@ describe('OverlayFeeder', () => {
       () => overlays,
       tracker,
       (id, m) => sent.push([id, m]),
-      0,
+      { throttleMs: 0 },
     );
     return { sent, feeder };
   }
