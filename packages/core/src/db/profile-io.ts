@@ -7,7 +7,11 @@ import {
 import type { Db } from './database';
 import type { ActionsRepo, ProfilesRepo } from './repositories';
 
-export function exportProfile(profiles: ProfilesRepo, actions: ActionsRepo, profileId: string): ProfileExport {
+export function exportProfile(
+  profiles: ProfilesRepo,
+  actions: ActionsRepo,
+  profileId: string,
+): ProfileExport {
   const profile = profiles.get(profileId);
   if (!profile) throw new Error(`Unknown profile ${profileId}`);
   return {

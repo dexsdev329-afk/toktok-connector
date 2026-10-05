@@ -21,7 +21,11 @@ const u: LiveUser = {
   isSubscriber: false,
   isFollower: false,
 };
-const obs = (repeatCount: number, repeatEnd: boolean, over: Partial<GiftObservation> = {}): GiftObservation => ({
+const obs = (
+  repeatCount: number,
+  repeatEnd: boolean,
+  over: Partial<GiftObservation> = {},
+): GiftObservation => ({
   platform: 'tiktok',
   user: u,
   gift: { id: 'rose', name: 'Rose', diamonds: 1 },
@@ -89,14 +93,26 @@ describe('TikTok mapper', () => {
       userIdentity: { isModeratorOfAnchor: true },
       gift: { id: '5655', name: 'Rose', diamondCount: 1, type: 1, image: { urlList: ['http://rose'] } },
     });
-    expect(o.user).toMatchObject({ id: '42', username: 'bob', displayName: 'Bobby', isModerator: true, avatarUrl: 'http://img' });
+    expect(o.user).toMatchObject({
+      id: '42',
+      username: 'bob',
+      displayName: 'Bobby',
+      isModerator: true,
+      avatarUrl: 'http://img',
+    });
     expect(o.gift).toEqual({ id: '5655', name: 'Rose', diamonds: 1, imageUrl: 'http://rose' });
     expect(o).toMatchObject({ repeatCount: 3, repeatEnd: true, streakable: true, streakKey: '42:5655:99' });
   });
 
   it('maps legacy field names and falls back to the catalog', () => {
     const o = mapGiftObservation(
-      { giftId: 7, repeatCount: 1, repeatEnd: false, user: { userId: '1', uniqueId: 'al' }, giftDetails: { giftType: 2 } },
+      {
+        giftId: 7,
+        repeatCount: 1,
+        repeatEnd: false,
+        user: { userId: '1', uniqueId: 'al' },
+        giftDetails: { giftType: 2 },
+      },
       (id) => (id === '7' ? { id: '7', name: 'Cached', diamonds: 10 } : undefined),
     );
     expect(o.gift).toEqual({ id: '7', name: 'Cached', diamonds: 10 });
@@ -107,7 +123,10 @@ describe('TikTok mapper', () => {
   it('maps chat and likes', () => {
     expect(mapChat({ user: { uniqueId: 'a' }, comment: 'hi' })).toMatchObject({ type: 'chat', text: 'hi' });
     expect(mapChat({ user: { displayId: 'a' }, content: 'yo' })).toMatchObject({ text: 'yo' });
-    expect(mapLike({ user: { displayId: 'a' }, count: 15, total: '1200' })).toMatchObject({ count: 15, total: 1200 });
+    expect(mapLike({ user: { displayId: 'a' }, count: 15, total: '1200' })).toMatchObject({
+      count: 15,
+      total: 1200,
+    });
   });
 
   it('maps gift lists defensively', () => {
@@ -139,7 +158,7 @@ class FakeClient implements TikTokClientLike {
   }
   async connect() {
     if (this.behavior === 'offline') {
-      const e = new Error('The requested user isn\'t online :(');
+      const e = new Error("The requested user isn't online :(");
       e.name = 'UserOfflineError';
       throw e;
     }
@@ -176,7 +195,11 @@ describe('TikTokConnector', () => {
     expect(connector.getStatus().status).toBe('connected');
     const c = clients[0]!;
     c.fire('chat', { user: { displayId: 'v' }, content: '!tnt' });
-    const g = { giftId: '1', user: { id: '9', displayId: 'v' }, gift: { name: 'Rose', diamondCount: 1, type: 1 } };
+    const g = {
+      giftId: '1',
+      user: { id: '9', displayId: 'v' },
+      gift: { name: 'Rose', diamondCount: 1, type: 1 },
+    };
     c.fire('gift', { ...g, repeatCount: 1, repeatEnd: 0 });
     c.fire('gift', { ...g, repeatCount: 2, repeatEnd: 1 });
     expect(events.map((e) => e.type)).toEqual(['connected', 'chat', 'gift']);

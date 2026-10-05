@@ -3,7 +3,11 @@ import { z } from 'zod';
 /** What makes an action fire. */
 export const TriggerSchema = z.discriminatedUnion('kind', [
   /** A specific gift (by id). `minCount` lets you require e.g. "5 roses in one streak". */
-  z.object({ kind: z.literal('gift'), giftId: z.string().min(1), minCount: z.number().int().positive().default(1) }),
+  z.object({
+    kind: z.literal('gift'),
+    giftId: z.string().min(1),
+    minCount: z.number().int().positive().default(1),
+  }),
   /** Any gift whose total value (unit diamonds x count) is >= min. */
   z.object({ kind: z.literal('diamonds'), min: z.number().int().positive() }),
   /** Fires once every `every` likes (cumulated across viewers for the session). */

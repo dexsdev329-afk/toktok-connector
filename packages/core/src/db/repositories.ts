@@ -23,8 +23,7 @@ export class SettingsRepo {
 
   get<T>(key: string, fallback: T): T {
     const row = this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as
-      | { value: string }
-      | undefined;
+      { value: string } | undefined;
     if (!row) return fallback;
     try {
       return JSON.parse(row.value) as T;
@@ -66,8 +65,7 @@ export class SecretsRepo {
 
   get(key: string): string | null {
     const row = this.db.prepare('SELECT cipher FROM secrets WHERE key = ?').get(key) as
-      | { cipher: Buffer }
-      | undefined;
+      { cipher: Buffer } | undefined;
     if (!row) return null;
     return this.cipher.decrypt(row.cipher);
   }
@@ -111,8 +109,7 @@ export class ProfilesRepo {
 
   getActive(): Profile | null {
     const row = this.db.prepare('SELECT * FROM profiles WHERE is_active = 1 LIMIT 1').get() as
-      | ProfileRow
-      | undefined;
+      ProfileRow | undefined;
     return row ? toProfile(row) : null;
   }
 
@@ -380,7 +377,10 @@ export class OverlaysRepo {
     return this.list().find((o) => o.id === id) ?? null;
   }
 
-  save(input: Omit<OverlayConfig, 'id'> & { id?: string }, newToken: () => string): OverlayConfig & { token: string } {
+  save(
+    input: Omit<OverlayConfig, 'id'> & { id?: string },
+    newToken: () => string,
+  ): OverlayConfig & { token: string } {
     const cfg = OverlayConfigSchema.parse({ ...input, id: input.id ?? makeId('ovl') });
     const existing = this.get(cfg.id);
     this.db
@@ -429,7 +429,9 @@ export class EventLogRepo {
   prune(maxAgeMs: number, maxRows: number, now = Date.now()): void {
     this.db.prepare('DELETE FROM event_log WHERE ts < ?').run(now - maxAgeMs);
     this.db
-      .prepare('DELETE FROM event_log WHERE id <= (SELECT id FROM event_log ORDER BY id DESC LIMIT 1 OFFSET ?)')
+      .prepare(
+        'DELETE FROM event_log WHERE id <= (SELECT id FROM event_log ORDER BY id DESC LIMIT 1 OFFSET ?)',
+      )
       .run(maxRows);
   }
 }
@@ -446,7 +448,9 @@ export class SessionsRepo {
   }
 
   end(id: string): void {
-    this.db.prepare('UPDATE live_sessions SET ended_at = ? WHERE id = ? AND ended_at IS NULL').run(Date.now(), id);
+    this.db
+      .prepare('UPDATE live_sessions SET ended_at = ? WHERE id = ? AND ended_at IS NULL')
+      .run(Date.now(), id);
   }
 
   addViewerStats(

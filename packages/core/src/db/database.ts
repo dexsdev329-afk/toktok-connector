@@ -26,7 +26,10 @@ export function migrate(db: Db): number {
   const apply = db.transaction(() => {
     for (const m of pending) {
       db.exec(m.sql);
-      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(m.version, Date.now());
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(
+        m.version,
+        Date.now(),
+      );
     }
   });
   apply();

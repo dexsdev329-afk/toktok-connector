@@ -1,4 +1,10 @@
-import { ActionSchema, type ActionInput, type JournalEntry, type LiveEvent, type LiveUser } from '@toktok/shared';
+import {
+  ActionSchema,
+  type ActionInput,
+  type JournalEntry,
+  type LiveEvent,
+  type LiveUser,
+} from '@toktok/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionEngine, type EffectRunner } from './engine';
 import { parseCommand, passesUserFilter } from './matcher';
@@ -23,7 +29,13 @@ const gift = (giftId: string, count: number, diamonds = 1, u = user()): LiveEven
   count,
   streakFinal: true,
 });
-const like = (count: number, u = user()): LiveEvent => ({ ...base(), type: 'like', user: u, count, total: 0 });
+const like = (count: number, u = user()): LiveEvent => ({
+  ...base(),
+  type: 'like',
+  user: u,
+  count,
+  total: 0,
+});
 const chat = (text: string, u = user()): LiveEvent => ({ ...base(), type: 'chat', user: u, text });
 
 const action = (over: Partial<ActionInput> & Pick<ActionInput, 'trigger'>) =>
@@ -64,7 +76,8 @@ function harness(opts: { concurrency?: number; maxPerSecond?: number; maxQueue?:
   return { engine, calls, journal, runner };
 }
 
-const statuses = (j: JournalEntry[]) => j.flatMap((e) => (e.kind === 'action' ? [e.status + (e.detail ? `:${e.detail}` : '')] : []));
+const statuses = (j: JournalEntry[]) =>
+  j.flatMap((e) => (e.kind === 'action' ? [e.status + (e.detail ? `:${e.detail}` : '')] : []));
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -147,7 +160,13 @@ describe('quantity', () => {
 
 describe('filters & cooldowns', () => {
   it('applies user filters', () => {
-    const f = { moderatorsOnly: true, subscribersOnly: false, followersOnly: false, allowList: ['vip'], denyList: ['troll'] };
+    const f = {
+      moderatorsOnly: true,
+      subscribersOnly: false,
+      followersOnly: false,
+      allowList: ['vip'],
+      denyList: ['troll'],
+    };
     expect(passesUserFilter(f, user())).toBe(false);
     expect(passesUserFilter(f, user({ isModerator: true }))).toBe(true);
     expect(passesUserFilter(f, user({ username: 'VIP' }))).toBe(true);
@@ -184,8 +203,18 @@ describe('queue', () => {
     const h = harness({ concurrency: 1 });
     h.runner.delay = 100;
     h.engine.setActions([
-      action({ id: 'low', trigger: { kind: 'gift', giftId: 'low' }, priority: 1, effects: [{ integrationId: 'i', effectId: 'low' }] }),
-      action({ id: 'high', trigger: { kind: 'gift', giftId: 'high' }, priority: 9, effects: [{ integrationId: 'i', effectId: 'high' }] }),
+      action({
+        id: 'low',
+        trigger: { kind: 'gift', giftId: 'low' },
+        priority: 1,
+        effects: [{ integrationId: 'i', effectId: 'low' }],
+      }),
+      action({
+        id: 'high',
+        trigger: { kind: 'gift', giftId: 'high' },
+        priority: 9,
+        effects: [{ integrationId: 'i', effectId: 'high' }],
+      }),
     ]);
     h.engine.handleEvent(gift('low', 1)); // starts immediately
     h.engine.handleEvent(gift('low', 1));
@@ -219,7 +248,9 @@ describe('queue', () => {
   it('drops jobs when the queue is full', async () => {
     const h = harness({ maxQueue: 2, concurrency: 1 });
     h.runner.delay = 100;
-    h.engine.setActions([action({ trigger: { kind: 'gift', giftId: '1' }, quantityMode: 'multiply', maxMultiplier: 10 })]);
+    h.engine.setActions([
+      action({ trigger: { kind: 'gift', giftId: '1' }, quantityMode: 'multiply', maxMultiplier: 10 }),
+    ]);
     h.engine.handleEvent(gift('1', 5));
     await vi.runAllTimersAsync();
     expect(h.calls).toHaveLength(2);

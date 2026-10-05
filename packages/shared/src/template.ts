@@ -87,8 +87,9 @@ export function escapeValue(value: string, mode: EscapeMode): string {
       return JSON.stringify(clean).slice(1, -1);
     case 'minecraft':
       // Formatting codes (§) could be abused; quotes/backslashes would break the command.
-      // Escape twice-safe: JSON escaping, then also neutralise single quotes used for SNBT strings.
-      return JSON.stringify(clean.replace(/§/g, '')).slice(1, -1).replace(/'/g, "\\'");
+      // Single quotes delimit SNBT strings: swap them for a typographic apostrophe, which is
+      // valid both in JSON and SNBT contexts and looks the same on screen.
+      return JSON.stringify(clean.replace(/§/g, '').replace(/'/g, '\u2019')).slice(1, -1);
     case 'url':
       return encodeURIComponent(clean);
   }

@@ -42,6 +42,13 @@ describe('renderTemplate', () => {
     expect(out).toBe('title @a title {"text":"Bob \\"the\\" builder"}');
   });
 
+  it('neutralises single quotes for SNBT', () => {
+    const ctx = { ...contextFromEvent(gift), displayName: "l'ami" };
+    expect(renderTemplate("{CustomName:'{displayName}'}", ctx, 'minecraft')).toBe(
+      "{CustomName:'l\u2019ami'}",
+    );
+  });
+
   it('strips control characters and section signs', () => {
     const ctx = { ...contextFromEvent(gift), message: 'hi\n§cred' };
     expect(renderTemplate('{message}', ctx, 'minecraft')).toBe('hi cred');

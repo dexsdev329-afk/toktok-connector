@@ -161,7 +161,13 @@ export class TikTokConnector extends BaseConnector {
       if (gen !== this.generation) return;
       this.backoff.reset();
       this.setStatus({ status: 'connected', channel });
-      this.emit('event', { id: makeId('con'), platform: 'tiktok', timestamp: Date.now(), type: 'connected', channel });
+      this.emit('event', {
+        id: makeId('con'),
+        platform: 'tiktok',
+        timestamp: Date.now(),
+        type: 'connected',
+        channel,
+      });
     } catch (err) {
       if (gen !== this.generation) return;
       client.removeAllListeners();
@@ -186,12 +192,30 @@ export class TikTokConnector extends BaseConnector {
       };
     const push = (e: LiveEvent) => this.emit('event', e);
 
-    client.on(EV.chat, guard((m: unknown) => push(mapChat(m))));
-    client.on(EV.like, guard((m: unknown) => push(mapLike(m))));
-    client.on(EV.follow, guard((m: unknown) => push(mapSocial(m, 'follow'))));
-    client.on(EV.share, guard((m: unknown) => push(mapSocial(m, 'share'))));
-    client.on(EV.subscribe, guard((m: unknown) => push(mapSubscribe(m))));
-    client.on(EV.roomUser, guard((m: unknown) => push(mapViewerCount(m))));
+    client.on(
+      EV.chat,
+      guard((m: unknown) => push(mapChat(m))),
+    );
+    client.on(
+      EV.like,
+      guard((m: unknown) => push(mapLike(m))),
+    );
+    client.on(
+      EV.follow,
+      guard((m: unknown) => push(mapSocial(m, 'follow'))),
+    );
+    client.on(
+      EV.share,
+      guard((m: unknown) => push(mapSocial(m, 'share'))),
+    );
+    client.on(
+      EV.subscribe,
+      guard((m: unknown) => push(mapSubscribe(m))),
+    );
+    client.on(
+      EV.roomUser,
+      guard((m: unknown) => push(mapViewerCount(m))),
+    );
     client.on(
       EV.gift,
       guard((m: unknown) => {

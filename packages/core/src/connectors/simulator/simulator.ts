@@ -65,7 +65,8 @@ export class SimulatorConnector extends BaseConnector {
     for (const t of this.timers) clearTimeout(t);
     this.timers.clear();
     this.aggregator.flushAll();
-    if (this.statusInfo.status === 'connected') this.push({ type: 'disconnected', reason: 'manual', liveEnded: false });
+    if (this.statusInfo.status === 'connected')
+      this.push({ type: 'disconnected', reason: 'manual', liveEnded: false });
     this.setStatus({ status: 'idle', channel: null });
   }
 
@@ -167,7 +168,12 @@ export class SimulatorConnector extends BaseConnector {
   }
 
   private push(partial: DistributiveOmit<LiveEvent, 'id' | 'platform' | 'timestamp'>): void {
-    this.emit('event', { ...partial, id: makeId('sim'), platform: 'simulator', timestamp: Date.now() } as LiveEvent);
+    this.emit('event', {
+      ...partial,
+      id: makeId('sim'),
+      platform: 'simulator',
+      timestamp: Date.now(),
+    } as LiveEvent);
   }
 }
 

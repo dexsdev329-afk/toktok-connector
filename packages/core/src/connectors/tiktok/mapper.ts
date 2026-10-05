@@ -81,7 +81,10 @@ export function mapGiftInfo(raw: unknown, lookup?: (id: string) => GiftInfo | un
   return {
     id,
     name: str(g.name, g.giftName, ext.name, known?.name) || `Gift ${id}`,
-    diamonds: Math.max(0, Math.floor(num(g.diamondCount, ext.diamond_count, ext.diamondCount, known?.diamonds))),
+    diamonds: Math.max(
+      0,
+      Math.floor(num(g.diamondCount, ext.diamond_count, ext.diamondCount, known?.diamonds)),
+    ),
     ...(image ? { imageUrl: image } : {}),
   };
 }
