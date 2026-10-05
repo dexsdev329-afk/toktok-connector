@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { IntegrationDefinitionDto, IntegrationDto } from '../../../shared/api';
 import { Badge, Button, Card, Empty, Field, Input, Modal, Select, Toggle } from '../components/ui';
 import { api } from '../lib/api';
+import { useCatalog } from '../lib/catalog';
 import { useAction, useLoad } from '../lib/hooks';
 import { useStore } from '../lib/store';
 
@@ -10,6 +11,7 @@ const STATE_COLOR = { connected: 'green', connecting: 'yellow', disconnected: 'g
 
 export function IntegrationsPage() {
   const { t } = useTranslation();
+  const cat = useCatalog();
   const version = useStore((s) => s.integrationsVersion);
   const [defs] = useLoad(() => api.integrations.definitions());
   const [list, reload] = useLoad(() => api.integrations.list(), [version]);
@@ -38,8 +40,8 @@ export function IntegrationsPage() {
               onClick={() => setEditing({ def: d, current: null })}
               className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-left transition-colors hover:border-brand-500"
             >
-              <div className="font-medium">{d.name}</div>
-              <div className="mt-1 text-xs text-slate-400">{d.description}</div>
+              <div className="font-medium">{cat.kindName(d.kind, d.name)}</div>
+              <div className="mt-1 text-xs text-slate-400">{cat.kindDescription(d.kind, d.description)}</div>
             </button>
           ))}
         </div>
@@ -56,7 +58,7 @@ export function IntegrationsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{i.name}</div>
                     <div className="text-xs text-slate-500">
-                      {def?.name ?? i.kind}
+                      {def ? cat.kindName(def.kind, def.name) : i.kind}
                       {i.status.detail ? ` — ${i.status.detail}` : ''}
                     </div>
                   </div>
@@ -127,7 +129,8 @@ function IntegrationModal({
   onSaved: () => void;
 }) {
   const { t } = useTranslation();
-  const [name, setName] = useState(current?.name ?? def.name);
+  const cat = useCatalog();
+  const [name, setName] = useState(current?.name ?? cat.kindName(def.kind, def.name));
   const [enabled, setEnabled] = useState(current?.enabled ?? true);
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const v: Record<string, unknown> = {};
@@ -153,7 +156,7 @@ function IntegrationModal({
 
   return (
     <Modal
-      title={def.name}
+      title={cat.kindName(def.kind, def.name)}
       onClose={onClose}
       footer={
         <>
@@ -167,7 +170,7 @@ function IntegrationModal({
       }
     >
       <div className="grid gap-3">
-        <p className="text-sm text-slate-400">{def.description}</p>
+        <p className="text-sm text-slate-400">{cat.kindDescription(def.kind, def.description)}</p>
         <Field label={t('integrations.name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>

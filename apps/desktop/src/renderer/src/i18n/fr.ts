@@ -230,6 +230,13 @@ const fr = {
     time: 'Moment',
     radius: 'Rayon (blocs)',
   },
+  /** French names come from the integration definitions; other languages translate them here. */
+  catalog: {
+    kinds: {},
+    effects: {},
+    presets: {},
+    categories: {},
+  } as Catalog,
   mcValues: {
     zombie: 'Zombie',
     husk: 'Zombie momifié',
@@ -474,6 +481,7 @@ const fr = {
     segmentLabel: 'Texte',
     segmentColor: 'Couleur',
     noAction: '— aucune action —',
+    segmentN: 'Case {{n}}',
     addSegment: 'Ajouter une case',
     spin: 'Tourner',
     startPause: 'Démarrer / pause',
@@ -507,6 +515,10 @@ const fr = {
       downloaded: 'Version {{v}} prête',
       error: 'Erreur',
     },
+  },
+  chaos: {
+    port: 'Port du WebSocket de debug',
+    effect: 'Effet Chaos',
   },
   journal: {
     filterAll: 'Tout',
@@ -564,6 +576,13 @@ const fr = {
     dataDir: 'Dossier des données',
   },
 };
+
+interface Catalog {
+  kinds: Record<string, { name: string; description?: string }>;
+  effects: Record<string, { name: string; description?: string }>;
+  presets: Record<string, string>;
+  categories: Record<string, string>;
+}
 
 export default fr;
 export type Dict = typeof fr;

@@ -545,7 +545,12 @@ function WheelOptions({
       <Button
         size="sm"
         disabled={segments.length >= 24}
-        onClick={() => setOpt('segments', [...segments, { label: `Case ${segments.length + 1}`, weight: 1 }])}
+        onClick={() =>
+          setOpt('segments', [
+            ...segments,
+            { label: t('overlays.segmentN', { n: segments.length + 1 }), weight: 1 },
+          ])
+        }
       >
         ＋ {t('overlays.addSegment')}
       </Button>

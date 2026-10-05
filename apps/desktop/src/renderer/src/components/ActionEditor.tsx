@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { useAction, useLoad } from '../lib/hooks';
 import { GiftSelect } from './GiftSelect';
 import { Button, Field, Input, Modal, Select, Textarea, Toggle } from './ui';
+import { useCatalog } from '../lib/catalog';
 
 const TRIGGER_KINDS: TriggerKind[] = [
   'gift',
@@ -375,6 +376,7 @@ function EffectsEditor({
   onChange: (e: Effect[]) => void;
 }) {
   const { t } = useTranslation();
+  const cat = useCatalog();
   const defByKind = useMemo(() => new Map(defs.map((d) => [d.kind, d])), [defs]);
   const update = (i: number, patch: Partial<Effect>) =>
     onChange(effects.map((e, j) => (j === i ? { ...e, ...patch } : e)));
@@ -424,7 +426,7 @@ function EffectsEditor({
                 >
                   {available.map((x) => (
                     <option key={x.id} value={x.id}>
-                      {x.name}
+                      {cat.effectName(x.id, x.name)}
                     </option>
                   ))}
                 </Select>
@@ -439,13 +441,13 @@ function EffectsEditor({
                     }}
                   >
                     <option value="">—</option>
-                    {[...new Set(def.presets.map((p) => p.category))].map((cat) => (
-                      <optgroup key={cat} label={cat}>
+                    {[...new Set(def.presets.map((p) => p.category))].map((category) => (
+                      <optgroup key={category} label={cat.category(category)}>
                         {def.presets
-                          .filter((p) => p.category === cat)
+                          .filter((p) => p.category === category)
                           .map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name}
+                              {cat.presetName(p.id, p.name)}
                             </option>
                           ))}
                       </optgroup>
@@ -477,7 +479,11 @@ function EffectsEditor({
             </div>
             {effectDef && (
               <div className="mt-3 grid gap-2">
-                {effectDef.description && <p className="text-xs text-slate-500">{effectDef.description}</p>}
+                {effectDef.description && (
+                  <p className="text-xs text-slate-500">
+                    {cat.effectDescription(effectDef.id, effectDef.description)}
+                  </p>
+                )}
                 {effectDef.params.map((p) => (
                   <Field key={p.key} label={t(p.label, { defaultValue: p.key })}>
                     <ParamInput

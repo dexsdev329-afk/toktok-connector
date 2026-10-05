@@ -365,6 +365,7 @@ const en: Dict = {
     segmentLabel: 'Text',
     segmentColor: 'Color',
     noAction: '— no action —',
+    segmentN: 'Slice {{n}}',
     addSegment: 'Add a slice',
     spin: 'Spin',
     startPause: 'Start / pause',
@@ -392,6 +393,181 @@ const en: Dict = {
       downloading: 'Downloading {{p}} %',
       downloaded: 'Version {{v}} ready',
       error: 'Error',
+    },
+  },
+  chaos: {
+    port: 'Debug WebSocket port',
+    effect: 'Chaos effect',
+  },
+  catalog: {
+    kinds: {
+      'minecraft-rcon': {
+        name: 'Minecraft Java (RCON)',
+        description:
+          'Sends commands to a Minecraft Java server through RCON (enable-rcon=true in server.properties).',
+      },
+      'minecraft-bedrock': {
+        name: 'Minecraft Bedrock (/connect)',
+        description:
+          'Minecraft Bedrock (Windows, local consoles) connects to the app with /connect localhost:PORT. Cheats on, and “Require encrypted websockets” off.',
+      },
+      input: {
+        name: 'Keyboard & mouse',
+        description: 'Simulates keys and the mouse in the game in the foreground.',
+      },
+      gamepad: {
+        name: 'Virtual gamepad (ViGEmBus)',
+        description:
+          'Creates a virtual Xbox 360 or DualShock 4 controller (Windows, ViGEmBus driver installed by you) to drive a PC game or Remote Play.',
+      },
+      'mod-bridge': {
+        name: 'Mod bridge (WebSocket)',
+        description:
+          'Local server any mod can connect to (BepInEx, MelonLoader, Lua…). See docs/bridge-protocol.md.',
+      },
+      webhook: {
+        name: 'HTTP / Webhook',
+        description: 'Calls a URL (your web games on Railway, a bot, any API) on every action.',
+      },
+      rooms: {
+        name: 'Rooms server (browser games)',
+        description:
+          'Links the app to your multi-room server on Railway: your web games (Three.js…) receive the live events and the effects.',
+      },
+      'chaos-mod': {
+        name: 'GTA V Chaos Mod (experimental)',
+        description:
+          'Triggers Chaos Mod effects (GTA V story mode) through its local debug WebSocket. Create the file chaosmod/.enabledebugsocket in the GTA V folder.',
+      },
+      'home-games': {
+        name: 'Home games',
+        description: 'Your web games (local folder or URL) receive the live events and the effects.',
+      },
+      overlays: {
+        name: 'Interactive overlays',
+        description: 'Spins the wheel and drives the timer from your actions.',
+      },
+    },
+    effects: {
+      mc_summon: { name: 'Spawn a mob', description: 'Appears around the player, named after the viewer.' },
+      mc_tnt: { name: 'TNT', description: 'Lit TNT around the player (rain when quantity > 1).' },
+      mc_lightning: { name: 'Lightning' },
+      mc_effect: { name: 'Potion effect' },
+      mc_clearEffects: { name: 'Clear all effects' },
+      mc_give: { name: 'Give an item' },
+      mc_title: { name: 'On-screen title' },
+      mc_say: { name: 'Message in the game chat' },
+      mc_weather: { name: 'Weather' },
+      mc_time: { name: 'Time of day' },
+      mc_killMobs: { name: 'Remove nearby mobs' },
+      rcon_command: {
+        name: 'Minecraft command',
+        description:
+          'One command per line. Variables: {player} {username} {displayName} {giftName} {count} {diamonds} {message}',
+      },
+      bedrock_command: {
+        name: 'Minecraft command',
+        description:
+          'One command per line. Variables: {player} {username} {displayName} {giftName} {count} {diamonds} {message}',
+      },
+      input_sequence: {
+        name: 'Key sequence',
+        description: 'tap / hold / down / up / wait / type / click / move / moveby / scroll',
+      },
+      input_tap: { name: 'Press a key' },
+      input_hold: { name: 'Hold a key' },
+      pad_sequence: {
+        name: 'Gamepad sequence',
+        description:
+          'press a 200 · down a · up a · stick left 0 1 800 · trigger right 1 500 · dpad up 150 · wait 300',
+      },
+      pad_press: { name: 'Press a button' },
+      bridge_send: {
+        name: 'Mod effect (manual)',
+        description: 'Sends an effect to a mod by its id, with JSON parameters (variables allowed).',
+      },
+      http_request: {
+        name: 'HTTP request',
+        description:
+          'Empty body = the whole context as JSON. Variables: {username} {giftName} {count} {diamonds}…',
+      },
+      rooms_effect: {
+        name: 'Effect for the room’s games',
+        description: 'Sends {type:"effect", effect, params, context} to the connected games.',
+      },
+      chaos_trigger: {
+        name: 'Trigger a Chaos effect',
+        description: 'The list fills in when GTA V runs with the Chaos Mod.',
+      },
+      chaos_random: {
+        name: 'Random Chaos effect',
+        description: 'A random effect among those enabled in the Chaos Mod configuration.',
+      },
+      homegame_effect: {
+        name: 'Effect for a home game',
+        description:
+          'Game: its name, its id, or * for all. The game receives {type:"effect", effect, params, context}.',
+      },
+      overlay_wheel_spin: {
+        name: 'Spin the wheel',
+        description: 'Spins a “Wheel” overlay. Spins run in order. Each slice can run an action.',
+      },
+      overlay_timer: {
+        name: 'Timer (subathon)',
+        description: 'Adds time to the timer, starts it, pauses it…',
+      },
+    },
+    presets: {
+      mc_p_zombie: 'Named zombie',
+      mc_p_creeper: 'Creeper',
+      mc_p_horde: 'Horde (1 zombie per gift)',
+      mc_p_chickens: 'Chicken rain',
+      mc_p_wolf: 'Allied wolf',
+      mc_p_golem: 'Iron golem',
+      mc_p_warden: 'Warden (!)',
+      mc_p_tnt: 'TNT',
+      'mc_p_tnt-rain': 'TNT rain (x5)',
+      mc_p_lightning: 'Lightning',
+      mc_p_storm: 'Thunderstorm',
+      mc_p_clear: 'Clear weather',
+      mc_p_night: 'Night',
+      mc_p_day: 'Day',
+      mc_p_speed: 'Speed 30 s',
+      mc_p_slow: 'Slowness 20 s',
+      mc_p_blind: 'Blindness 10 s',
+      mc_p_levitate: 'Levitation 4 s',
+      mc_p_heal: 'Full heal',
+      mc_p_cleanse: 'Cleanse',
+      mc_p_diamond: 'Diamond per gift',
+      mc_p_apple: 'Golden apple',
+      mc_p_totem: 'Totem of undying',
+      'mc_p_title-gift': 'Title: thanks for the gift',
+      'mc_p_title-follow': 'Title: new follower',
+      mc_p_say: 'Chat message',
+      'mc_p_kill-zombies': 'Clear zombies',
+      'mc_raw_title-chat': 'Raw command: title + sound',
+      mc_raw_anvil: 'Raw command: anvil overhead',
+      in_jump: 'Jump',
+      in_forward: 'Walk forward 2 s',
+      in_spin: 'Mouse half-turn',
+      in_drop: 'Drop item (Q)',
+      in_inventory: 'Inventory (E)',
+      pad_jump: 'Jump (A)',
+      pad_forward: 'Forward 1.5 s',
+      pad_spin: 'Turn the camera',
+      pad_shoot: 'Shoot (right trigger)',
+      pad_pause: 'Pause (Start)',
+    },
+    categories: {
+      Mobs: 'Mobs',
+      TNT: 'TNT',
+      Monde: 'World',
+      Effets: 'Effects',
+      Objets: 'Items',
+      Messages: 'Messages',
+      'Commandes libres': 'Raw commands',
+      moves: 'Moves',
+      Manette: 'Gamepad',
     },
   },
   journal: {

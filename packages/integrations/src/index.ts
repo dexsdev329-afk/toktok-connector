@@ -12,3 +12,4 @@ export * from './mod-bridge/protocol';
 export * from './mod-bridge/mod-bridge';
 export * from './rooms/rooms';
 export * from './gamepad/gamepad';
+export * from './chaos-mod/chaos-mod';

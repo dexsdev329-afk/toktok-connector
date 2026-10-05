@@ -1,3 +1,4 @@
+import { chaosModDefinition } from './chaos-mod/chaos-mod';
 import type { Effect, LiveEvent, TemplateContext } from '@toktok/shared';
 import { gamepadDefinition } from './gamepad/gamepad';
 import { inputDefinition } from './input/input-integration';
@@ -24,6 +25,7 @@ export const BUILTIN_DEFINITIONS: IntegrationDefinition<any>[] = [
   modBridgeDefinition,
   webhookDefinition,
   roomsDefinition,
+  chaosModDefinition,
 ];
 
 export interface IntegrationInstanceConfig {

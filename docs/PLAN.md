@@ -45,16 +45,18 @@ Effets structurés Java et Bedrock, intégration Bedrock `/connect`, pack Minecr
 effet depuis l'éditeur, faux serveur RCON pour les tests. Reste à faire : websockets chiffrés Bedrock
 (`enableencryption`, à valider sur un vrai client).
 
-### Phase 2
+### Phase 2 ✅
 
 Manette virtuelle (ViGEmBus), bridge pour mods et exemple BepInEx,
 webhook HTTP, serveur de salles Railway (nouveau projet), TTS (SAPI, API externe, filtre anti-insultes), sons,
 module « Jeux maison ».
 
-### Phase 3
+### Phase 3 ✅
 
-Kick, overlays restants (chat, viewers, roue, timer, derniers followers), éditeur de thèmes, i18n complet,
-mises à jour automatiques (electron-updater, GitHub Releases), Chaos Mod expérimental.
+Kick (lecture seule, multistream avec TikTok), overlays restants (chat, spectateurs, roue, minuteur, derniers
+followers), éditeur de thèmes, i18n complet (tests de complétude FR/EN), mises à jour automatiques
+(electron-updater, GitHub Releases, workflow Release), Chaos Mod expérimental (WebSocket de debug, vérifié dans
+les sources du mod, mai 2026).
 
 ### Phase 4
 

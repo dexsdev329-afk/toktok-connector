@@ -4,9 +4,9 @@ Application Windows (Electron) qui relie un **TikTok LIVE** et/ou un **live Kick
 communauté d'Anonyme Agency. Les cadeaux, likes, follows et messages des viewers déclenchent des effets en temps
 réel : commandes Minecraft, touches clavier, alertes à l'écran…
 
-> Statut : **phase 1 (MVP)**. Voir [docs/PLAN.md](docs/PLAN.md) pour la feuille de route.
+> Statut : **phases 1 à 3 terminées** (TikTok, Kick, Minecraft, overlays, thèmes, mises à jour). Phase 4 (comptes, licences) à venir. Voir [docs/PLAN.md](docs/PLAN.md) pour la feuille de route.
 
-## Fonctionnalités (phase 1)
+## Fonctionnalités
 
 - **Connexion TikTok LIVE** via `tiktok-live-connector`. Reconnexion automatique (backoff exponentiel). La fin
   du live est détectée et l'app attend automatiquement le live suivant.
@@ -28,7 +28,10 @@ réel : commandes Minecraft, touches clavier, alertes à l'écran…
   néon et minimal ; couleurs, police et animations réglables ; aperçu en direct.
 - **Journal en direct** de tous les événements et de toutes les actions exécutées.
 - **API locale** (Stream Deck) : déclencher une action via HTTP avec un jeton.
-- Interface **français / anglais** (i18next).
+- Interface **français / anglais** (i18next) : un test vérifie que les deux langues ont les mêmes clés et que
+  chaque texte de l'interface, intégration, effet et préréglage est traduit. Restent en français : les noms que
+  tu donnes toi-même et quelques messages techniques du journal.
+- **Mises à jour automatiques** depuis GitHub Releases.
 
 ## Démarrage rapide (développement)
 
@@ -195,6 +198,21 @@ L'intégration **Manette virtuelle** crée une manette Xbox 360 ou DualShock 4 g
 Ce pilote est à installer soi-même : le projet est archivé et son installeur n'est pas redistribué. Les
 séquences s'écrivent comme ceci : `press a 200`, `stick left 0 1 1500`, `trigger right 1 400`,
 `dpad up 150`, `wait 300`. Les boutons sont toujours relâchés à la fin de la séquence.
+
+### GTA V Chaos Mod (expérimental)
+
+Pour GTA V en solo avec le [Chaos Mod](https://github.com/gta-chaos-mod/ChaosModV) (mod tiers, GPL-3.0, non
+fourni) :
+
+1. Dans le dossier de GTA V, crée le fichier vide `chaosmod/.enabledebugsocket` (cela active le WebSocket de
+   debug du mod, en local uniquement : `ws://127.0.0.1:31819`).
+2. Ajoute l'intégration **GTA V Chaos Mod** dans l'app. Elle attend le jeu et se connecte dès qu'il est lancé.
+3. Effets : « Déclencher un effet Chaos » (liste remplie automatiquement depuis le mod) ou « Effet Chaos
+   aléatoire ». Les effets désactivés dans la configuration du mod sont ignorés.
+
+L'app n'utilise que les commandes `fetch_effects` et `trigger_effect`. La commande du mod qui exécute du Lua
+arbitraire n'est volontairement pas exposée. Expérimental : non testé sur un vrai GTA V (testé contre un faux
+serveur respectant le même format).
 
 ### Sons & synthèse vocale
 
