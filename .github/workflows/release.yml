@@ -1,32 +1,45 @@
 name: Release
 
-# Push a tag "vX.Y.Z" (same version as apps/desktop/package.json) to build the Windows
-# installer and publish it with latest.yml on GitHub Releases. Installed apps pick it up
-# through the auto-updater.
+# Publishes the Windows installer + latest.yml on GitHub Releases (the auto-updater reads them):
+# - push a tag "vX.Y.Z" matching apps/desktop/package.json, or
+# - push a commit whose message contains "[release]": the tag vX.Y.Z is created on that commit.
 on:
   push:
     tags: ['v*']
+    branches: ['**']
 
 permissions:
   contents: write
 
 jobs:
   windows:
+    if: startsWith(github.ref, 'refs/tags/v') || contains(github.event.head_commit.message, '[release]')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - name: Check that the tag matches the app version
+      - name: Check the version and create the tag
         shell: bash
         run: |
           version="v$(node -p "require('./apps/desktop/package.json').version")"
-          if [ "$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match apps/desktop/package.json ($version)"
-            exit 1
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            if [ "$version" != "$GITHUB_REF_NAME" ]; then
+              echo "Tag $GITHUB_REF_NAME does not match apps/desktop/package.json ($version)"
+              exit 1
+            fi
+          else
+            if git rev-parse -q --verify "refs/tags/$version" >/dev/null; then
+              echo "$version already exists: bump apps/desktop/package.json first"
+              exit 1
+            fi
+            git tag "$version" "$GITHUB_SHA"
+            git push origin "$version"
           fi
       - run: pnpm install --frozen-lockfile
       - run: pnpm test

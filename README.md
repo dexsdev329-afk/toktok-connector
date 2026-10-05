@@ -286,7 +286,8 @@ puis « Redémarrer et installer » (sinon la mise à jour s'installe à la ferm
 Publier une version :
 
 1. Monter `version` dans `apps/desktop/package.json` (ex. `0.2.0`) et committer.
-2. Pousser le tag correspondant : `git tag v0.2.0 && git push origin v0.2.0`.
+2. Pousser le tag correspondant (`git tag v0.2.0 && git push origin v0.2.0`), ou pousser un commit dont le
+   message contient `[release]` (le tag est alors créé par le workflow).
 3. Le workflow **Release** construit l'installateur et le publie avec `latest.yml` sur GitHub Releases.
 
 L'installateur n'est pas signé (choix du projet) : Windows SmartScreen peut afficher un avertissement à la
