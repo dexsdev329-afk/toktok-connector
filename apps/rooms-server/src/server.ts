@@ -108,3 +108,18 @@ server.listen(PORT, () => {
   console.log(`TokTok rooms server on :${PORT} — ${pins.size} salle(s) ouverte(s) sur ${ROOM_COUNT}`);
   if (!PINS_FILE) console.warn('DATA_DIR non défini : les PIN modifiés ne survivront pas à un redémarrage');
 });
+
+/**
+ * Railway stops the old container with SIGTERM on every redeploy: close cleanly (clients get
+ * 1012 "service restart" and reconnect to the new instance) instead of being killed, which
+ * Railway reports as a crash.
+ */
+function shutdown(signal: string): void {
+  console.log(`${signal} reçu : arrêt propre`);
+  for (const ws of wss.clients) ws.close(1012, 'Redémarrage du serveur');
+  server.close(() => process.exit(0));
+  server.closeAllConnections();
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));
